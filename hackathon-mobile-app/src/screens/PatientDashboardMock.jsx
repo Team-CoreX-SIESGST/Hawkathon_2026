@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigation } from "@react-navigation/native";
 import {
   StyleSheet,
   Text,
@@ -49,6 +50,7 @@ const pharmacies = [
 ];
 
 export default function PatientDashboardMock() {
+  const navigation = useNavigation();
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
@@ -77,9 +79,13 @@ export default function PatientDashboardMock() {
               key={item.title}
               style={styles.quickCard}
               activeOpacity={0.8}
-              onPress={() =>
-                Alert.alert("Quick Action", `${item.title} tapped`)
-              }
+              onPress={() => {
+                if (item.title === "Talk to Doctor") {
+                  navigation.navigate("Chat");
+                  return;
+                }
+                Alert.alert("Quick Action", `${item.title} tapped`);
+              }}
             >
               <View style={styles.quickIconCircle}>
                 <Text style={styles.quickIconText}>{item.icon}</Text>
