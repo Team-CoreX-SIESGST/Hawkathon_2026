@@ -40,9 +40,13 @@ const initialState = {
 
 export default function AuthFormScreen({ navigation, route }) {
   const role = route?.params?.role || "patient";
+  const normalizedRole = role === "abha" ? "asha" : role;
   const mode = route?.params?.mode || "login";
   const isLogin = mode === "login";
-  const roleLabel = useMemo(() => ROLE_LABELS[role] || "User", [role]);
+  const roleLabel = useMemo(
+    () => ROLE_LABELS[normalizedRole] || "User",
+    [normalizedRole]
+  );
   const { signIn } = useContext(AuthContext);
 
   const [form, setForm] = useState(initialState);
@@ -126,7 +130,7 @@ export default function AuthFormScreen({ navigation, route }) {
       }
 
       let response;
-      if (role === "patient") {
+      if (normalizedRole === "patient") {
         if (isLogin) {
           response = await patientLogin({ abhaId: form.abhaId.trim() });
         } else {
@@ -138,17 +142,17 @@ export default function AuthFormScreen({ navigation, route }) {
             locationCoordinates,
           });
         }
-      } else if (role === "doctor") {
+      } else if (normalizedRole === "doctor") {
         if (isLogin) {
           response = await doctorLogin({
-            username: form.username.trim(),
+            username: form.username.trim().toLowerCase(),
             password: form.password,
           });
         } else {
           const locationCoordinates = parseLocation();
           response = await doctorRegister({
             name: form.name.trim(),
-            username: form.username.trim(),
+            username: form.username.trim().toLowerCase(),
             password: form.password,
             hospitalName: form.hospitalName.trim(),
             locationCoordinates,
@@ -157,14 +161,14 @@ export default function AuthFormScreen({ navigation, route }) {
       } else {
         if (isLogin) {
           response = await ashaLogin({
-            username: form.username.trim(),
+            username: form.username.trim().toLowerCase(),
             password: form.password,
           });
         } else {
           const locationCoordinates = parseLocation();
           response = await ashaRegister({
             name: form.name.trim(),
-            username: form.username.trim(),
+            username: form.username.trim().toLowerCase(),
             password: form.password,
             locationCoordinates,
           });
@@ -172,13 +176,15 @@ export default function AuthFormScreen({ navigation, route }) {
       }
 
       const { token, ...profile } = response || {};
-      signIn({ user: profile, token, role });
+      signIn({ user: profile, token, role: normalizedRole });
 
       let nextScreen = "Home";
-      if (role === "patient") {
+      if (normalizedRole === "patient") {
         nextScreen = "PatientDashboardMock";
-      } else if (role === "doctor") {
+      } else if (normalizedRole === "doctor") {
         nextScreen = "DoctorProfile";
+      } else if (normalizedRole === "asha") {
+        nextScreen = "AbhaSevakProfile";
       }
 
       navigation.reset({ index: 0, routes: [{ name: nextScreen }] });
