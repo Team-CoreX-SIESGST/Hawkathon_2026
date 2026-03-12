@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import PatientAccount from '../models/PatientAccount.js';
+import Patient from '../models/Patient.js';
 
 const generateToken = (id, role) => {
     return jwt.sign({ id, role }, process.env.JWT_SECRET || 'fallback_secret_key_123', {
@@ -7,11 +8,26 @@ const generateToken = (id, role) => {
     });
 };
 
-const parseLocation = (locationCoordinates) => {
-    if (!locationCoordinates) return null;
-    const { latitude, longitude } = locationCoordinates;
-    if (typeof latitude !== 'number' || typeof longitude !== 'number') return null;
-    return { latitude, longitude };
+const parseLocation = (locationCoordinates, latitude, longitude) => {
+    const coords = locationCoordinates || { latitude, longitude };
+    if (!coords) return null;
+    const lat = Number(coords.latitude);
+    const lng = Number(coords.longitude);
+    if (Number.isNaN(lat) || Number.isNaN(lng)) return null;
+    return { latitude: lat, longitude: lng };
+};
+
+const toRad = (value) => (value * Math.PI) / 180;
+const haversineKm = (a, b) => {
+    const R = 6371;
+    const dLat = toRad(b.latitude - a.latitude);
+    const dLon = toRad(b.longitude - a.longitude);
+    const lat1 = toRad(a.latitude);
+    const lat2 = toRad(b.latitude);
+    const h =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(h));
 };
 
 // @desc    Register patient
@@ -19,8 +35,8 @@ const parseLocation = (locationCoordinates) => {
 // @access  Public
 export const registerPatient = async (req, res) => {
     try {
-        const { name, abhaId, phoneNumber, locationCoordinates } = req.body;
-        const parsedLocation = parseLocation(locationCoordinates);
+        const { name, abhaId, phoneNumber, locationCoordinates, latitude, longitude } = req.body;
+        const parsedLocation = parseLocation(locationCoordinates, latitude, longitude);
 
         if (!name || !abhaId || !phoneNumber || !parsedLocation) {
             return res.status(400).json({ message: 'Please provide all required fields' });
@@ -88,8 +104,12 @@ export const updatePatient = async (req, res) => {
         if (req.body.name) updates.name = req.body.name;
         if (req.body.phoneNumber) updates.phoneNumber = req.body.phoneNumber;
 
-        if (req.body.locationCoordinates) {
-            const parsedLocation = parseLocation(req.body.locationCoordinates);
+        if (req.body.locationCoordinates || req.body.latitude || req.body.longitude) {
+            const parsedLocation = parseLocation(
+                req.body.locationCoordinates,
+                req.body.latitude,
+                req.body.longitude
+            );
             if (!parsedLocation) {
                 return res.status(400).json({ message: 'Invalid locationCoordinates' });
             }
@@ -99,6 +119,13 @@ export const updatePatient = async (req, res) => {
         const patient = await PatientAccount.findByIdAndUpdate(req.user._id, updates, {
             new: true
         });
+
+        if (updates.locationCoordinates && patient?.abhaId) {
+            await Patient.updateMany(
+                { 'abha_profile.healthId': patient.abhaId },
+                { $set: { locationCoordinates: updates.locationCoordinates } }
+            );
+        }
 
         res.json({
             _id: patient._id,
@@ -123,4 +150,47 @@ export const getPatientMe = async (req, res) => {
         phoneNumber: req.user.phoneNumber,
         locationCoordinates: req.user.locationCoordinates
     });
+};
+
+// @desc    Get patients near a coordinate
+// @route   GET /api/patient/nearby?latitude=..&longitude=..&radiusKm=..
+// @access  Private
+export const getPatientsNearby = async (req, res) => {
+    try {
+        const latitude = Number(req.query.latitude);
+        const longitude = Number(req.query.longitude);
+        const radiusKm = req.query.radiusKm ? Number(req.query.radiusKm) : 10;
+
+        if (Number.isNaN(latitude) || Number.isNaN(longitude)) {
+            return res.status(400).json({ message: 'latitude and longitude are required' });
+        }
+
+        const origin = { latitude, longitude };
+        const patients = await Patient.find({
+            'locationCoordinates.latitude': { $ne: null },
+            'locationCoordinates.longitude': { $ne: null }
+        }).limit(500);
+
+        const nearby = patients
+            .map((patient) => {
+                const coords = patient.locationCoordinates;
+                if (!coords) return null;
+                const distanceKm = haversineKm(origin, coords);
+                return { patient, distanceKm };
+            })
+            .filter((item) => item && item.distanceKm <= radiusKm)
+            .sort((a, b) => a.distanceKm - b.distanceKm)
+            .map((item) => ({
+                _id: item.patient._id,
+                name: item.patient?.abha_profile?.name,
+                healthId: item.patient?.abha_profile?.healthId,
+                healthIdNumber: item.patient?.abha_profile?.healthIdNumber,
+                locationCoordinates: item.patient.locationCoordinates,
+                distanceKm: Number(item.distanceKm.toFixed(2))
+            }));
+
+        res.json({ count: nearby.length, results: nearby });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
 };
