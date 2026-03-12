@@ -123,5 +123,5 @@ These symptoms always trigger 🔴 EMERGENCY regardless of any other context:
 </persona_consistency>`;
 };
 
-export const RESEARCH_ASSISTANT_PROMPT = ({ username } = {}) =>
+export const MEDISETU_PROMPT = ({ username } = {}) =>
     buildResearchAssistantPrompt(username);

@@ -7,7 +7,7 @@ import { dirname, join } from 'path';
 import geminiRouter from "./routers/geminiRouter.js";
 import userRouter from "./routers/userRouter.js";
 import chatRouter from "./routers/chatRouter.js";
-// import speechRouter from "./routers/speechRouter.js";
+import speechRouter from "./routers/speechRouter.js";
 import { createUploadsDir } from "./utils/fileUpload.js";
 import uploadRouter from "./routers/uploadRouter.js";
 import youtubeRouter from "./routers/youtubeRouter.js";
