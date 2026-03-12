@@ -1,4 +1,4 @@
-import React, { useContext, useMemo, useState } from "react";
+import React, { useContext, useEffect, useMemo, useState } from "react";
 import {
   SafeAreaView,
   StyleSheet,
@@ -24,6 +24,8 @@ const ROLE_LABELS = {
   asha: "ASHA Worker",
 };
 
+const GOOGLE_PLACES_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY;
+
 const initialState = {
   name: "",
   abhaId: "",
@@ -46,6 +48,9 @@ export default function AuthFormScreen({ navigation, route }) {
   const [form, setForm] = useState(initialState);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [cityQuery, setCityQuery] = useState("");
+  const [citySuggestions, setCitySuggestions] = useState([]);
+  const [cityLoading, setCityLoading] = useState(false);
 
   const updateField = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -58,6 +63,55 @@ export default function AuthFormScreen({ navigation, route }) {
     return { latitude, longitude };
   };
 
+  useEffect(() => {
+    if (!cityQuery || cityQuery.trim().length < 2 || !GOOGLE_PLACES_API_KEY) {
+      setCitySuggestions([]);
+      return;
+    }
+
+    const timeout = setTimeout(async () => {
+      try {
+        setCityLoading(true);
+        const encoded = encodeURIComponent(cityQuery.trim());
+        const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encoded}&types=(cities)&components=country:in&key=${GOOGLE_PLACES_API_KEY}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        const suggestions = (data?.predictions || []).map((item) => ({
+          id: item.place_id,
+          label: item.description,
+        }));
+        setCitySuggestions(suggestions);
+      } catch (err) {
+        setCitySuggestions([]);
+      } finally {
+        setCityLoading(false);
+      }
+    }, 350);
+
+    return () => clearTimeout(timeout);
+  }, [cityQuery]);
+
+  const handleCitySelect = async (place) => {
+    setCityQuery(place.label);
+    updateField("city", place.label);
+    setCitySuggestions([]);
+
+    if (!GOOGLE_PLACES_API_KEY) return;
+
+    try {
+      const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.id}&fields=geometry&key=${GOOGLE_PLACES_API_KEY}`;
+      const response = await fetch(url);
+      const data = await response.json();
+      const location = data?.result?.geometry?.location;
+      if (location?.lat && location?.lng) {
+        updateField("latitude", String(location.lat));
+        updateField("longitude", String(location.lng));
+      }
+    } catch (err) {
+      // Ignore lookup failures and allow manual retry via typing
+    }
+  };
+
   const handleSubmit = async () => {
     setError("");
     setLoading(true);
@@ -65,7 +119,7 @@ export default function AuthFormScreen({ navigation, route }) {
       if (!isLogin) {
         const locationCoordinates = parseLocation();
         if (!locationCoordinates) {
-          setError("Enter valid latitude and longitude");
+          setError("Select a city to continue");
           setLoading(false);
           return;
         }
@@ -119,14 +173,14 @@ export default function AuthFormScreen({ navigation, route }) {
 
       const { token, ...profile } = response || {};
       signIn({ user: profile, token, role });
-      
+
       let nextScreen = "Home";
       if (role === "patient") {
         nextScreen = "PatientDashboardMock";
       } else if (role === "doctor") {
         nextScreen = "ConsultantDashboardMock";
       }
-      
+
       navigation.reset({ index: 0, routes: [{ name: nextScreen }] });
     } catch (err) {
       setError(err.message || "Something went wrong");
@@ -145,6 +199,42 @@ export default function AuthFormScreen({ navigation, route }) {
         placeholderTextColor="#9CA3AF"
         {...props}
       />
+    </View>
+  );
+  
+  const renderCityDropdown = () => (
+    <View style={styles.field}>
+      <Text style={styles.label}>City (India)</Text>
+      <TextInput
+        style={styles.input}
+        value={cityQuery}
+        onChangeText={(value) => {
+          setCityQuery(value);
+          updateField("city", value);
+        }}
+        placeholder="Start typing your city"
+        placeholderTextColor="#9CA3AF"
+        autoCapitalize="words"
+      />
+      {cityLoading && (
+        <Text style={styles.helperText}>Fetching city suggestions...</Text>
+      )}
+      {!GOOGLE_PLACES_API_KEY && (
+        <Text style={styles.helperText}>Add your Google API key in .env.</Text>
+      )}
+      {citySuggestions.length > 0 && (
+        <View style={styles.dropdown}>
+          {citySuggestions.map((item) => (
+            <Pressable
+              key={item.id}
+              onPress={() => handleCitySelect(item)}
+              style={styles.dropdownItem}
+            >
+              <Text style={styles.dropdownText}>{item.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
     </View>
   );
 
@@ -191,27 +281,9 @@ export default function AuthFormScreen({ navigation, route }) {
 
         {!isLogin && (
           <>
-            {renderInput("City (Google Places)", form.city, (v) => updateField("city", v))}
-            <View style={styles.row}>
-              <View style={styles.rowItem}>
-                {renderInput(
-                  "Latitude",
-                  form.latitude,
-                  (v) => updateField("latitude", v),
-                  { keyboardType: "numeric" }
-                )}
-              </View>
-              <View style={styles.rowItem}>
-                {renderInput(
-                  "Longitude",
-                  form.longitude,
-                  (v) => updateField("longitude", v),
-                  { keyboardType: "numeric" }
-                )}
-              </View>
-            </View>
+            {renderCityDropdown()}
             <Text style={styles.helperText}>
-              Use Google Places to select a city and fill coordinates.
+              Select a city from the list to fill your location automatically.
             </Text>
           </>
         )}
@@ -271,13 +343,23 @@ const styles = StyleSheet.create({
     color: "#111827",
     backgroundColor: "#F9FAFB",
   },
-  row: {
-    marginTop: 4,
-    flexDirection: "row",
-    gap: 12,
+  dropdown: {
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 12,
+    backgroundColor: "#FFFFFF",
+    overflow: "hidden",
   },
-  rowItem: {
-    flex: 1,
+  dropdownItem: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F3F4F6",
+  },
+  dropdownText: {
+    fontSize: 14,
+    color: "#111827",
   },
   helperText: {
     marginTop: 8,
