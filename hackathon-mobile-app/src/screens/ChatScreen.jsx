@@ -336,70 +336,70 @@ function MessageBubble({ message, onOpenUrl }) {
           ) : null}
 
           {!isUser && images.length > 0 ? (
-        <View style={styles.sectionBlock}>
-          <Text style={styles.sectionTitle}>Images</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.imageRow}>
-            {images.map((item, index) => (
-              <Pressable
-                key={`${message.id}-image-${index}`}
-                style={styles.mediaCard}
-                onPress={() => onOpenUrl(item.pageUrl || item.imageUrl)}
-              >
-                <Image
-                  source={{ uri: item.thumbnailUrl || item.imageUrl }}
-                  style={styles.mediaImage}
-                  resizeMode="cover"
-                />
-                <Text numberOfLines={2} style={styles.mediaTitle}>
-                  {String(item.title || "Image")}
-                </Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-        </View>
-      ) : null}
+            <View style={styles.sectionBlock}>
+              <Text style={styles.sectionTitle}>Images</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.imageRow}>
+                {images.map((item, index) => (
+                  <Pressable
+                    key={`${message.id}-image-${index}`}
+                    style={styles.mediaCard}
+                    onPress={() => onOpenUrl(item.pageUrl || item.imageUrl)}
+                  >
+                    <Image
+                      source={{ uri: item.thumbnailUrl || item.imageUrl }}
+                      style={styles.mediaImage}
+                      resizeMode="cover"
+                    />
+                    <Text numberOfLines={2} style={styles.mediaTitle}>
+                      {String(item.title || "Image")}
+                    </Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+          ) : null}
 
-      {!isUser && videos.length > 0 ? (
-        <View style={styles.sectionBlock}>
-          <Text style={styles.sectionTitle}>YouTube</Text>
-          {videos.map((video, index) => {
-            const thumb =
-              video?.thumbnails?.high?.url ||
-              video?.thumbnails?.medium?.url ||
-              video?.thumbnails?.default?.url;
+          {!isUser && videos.length > 0 ? (
+            <View style={styles.sectionBlock}>
+              <Text style={styles.sectionTitle}>YouTube</Text>
+              {videos.map((video, index) => {
+                const thumb =
+                  video?.thumbnails?.high?.url ||
+                  video?.thumbnails?.medium?.url ||
+                  video?.thumbnails?.default?.url;
 
-            return (
-              <Pressable
-                key={`${message.id}-video-${index}`}
-                style={styles.videoCard}
-                onPress={() => onOpenUrl(video.url)}
-              >
-                {thumb ? <Image source={{ uri: thumb }} style={styles.videoThumb} resizeMode="cover" /> : null}
-                <Text numberOfLines={2} style={styles.videoTitle}>
-                  {String(video.title || "YouTube video")}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      ) : null}
+                return (
+                  <Pressable
+                    key={`${message.id}-video-${index}`}
+                    style={styles.videoCard}
+                    onPress={() => onOpenUrl(video.url)}
+                  >
+                    {thumb ? <Image source={{ uri: thumb }} style={styles.videoThumb} resizeMode="cover" /> : null}
+                    <Text numberOfLines={2} style={styles.videoTitle}>
+                      {String(video.title || "YouTube video")}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : null}
 
-      {!isUser && sources.length > 0 ? (
-        <View style={styles.sectionBlock}>
-          <Text style={styles.sectionTitle}>Sources</Text>
-          {sources.map((source, index) => (
-            <Pressable
-              key={`${message.id}-source-${index}`}
-              onPress={() => onOpenUrl(source.url)}
-              style={styles.sourceRow}
-            >
-              <Text numberOfLines={2} style={styles.sourceText}>
-                {String((source.title || source.url || "").trim())}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-      ) : null}
+          {!isUser && sources.length > 0 ? (
+            <View style={styles.sectionBlock}>
+              <Text style={styles.sectionTitle}>Sources</Text>
+              {sources.map((source, index) => (
+                <Pressable
+                  key={`${message.id}-source-${index}`}
+                  onPress={() => onOpenUrl(source.url)}
+                  style={styles.sourceRow}
+                >
+                  <Text numberOfLines={2} style={styles.sourceText}>
+                    {String((source.title || source.url || "").trim())}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
         </View>
         {!isUser && <Text style={styles.messageTime}>Just now</Text>}
       </View>
@@ -515,6 +515,9 @@ export default function ChatScreen({ route, navigation }) {
   // ─── ONLINE path ──────────────────────────────────────────────────────────
 
   function handleOnlineSend(trimmedPrompt) {
+    const now = Date.now();
+    const userId = `${now}-user`;
+    const assistantId = `${now}-assistant`;
 
     setError("");
     setPrompt("");
