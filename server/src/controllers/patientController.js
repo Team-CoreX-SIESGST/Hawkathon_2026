@@ -73,28 +73,39 @@ export const registerPatient = async (req, res) => {
 export const loginPatient = async (req, res) => {
     try {
         const { abhaId } = req.body;
-        console.log(abhaId,"uhyyigiuohuo")
         if (!abhaId) {
             return res.status(400).json({ message: 'ABHA ID is required' });
         }
 
-        const patient = await Patient.findOne({
-          "abha_profile.healthIdNumber": abhaId,
+        const patientData = await Patient.findOne({
+            'abha_profile.healthIdNumber': abhaId
         });
 
-        if (!patient) {
+        if (!patientData) {
             return res.status(401).json({ message: 'Invalid ABHA ID' });
         }
 
-        console.log(patient,"fewoifhoi")
+        let patientAccount = await PatientAccount.findOne({ abhaId });
+        if (!patientAccount) {
+            const coords = patientData.locationCoordinates;
+            if (!coords?.latitude || !coords?.longitude) {
+                return res.status(400).json({ message: 'Patient location not set' });
+            }
+            patientAccount = await PatientAccount.create({
+                name: patientData?.abha_profile?.name || 'Patient',
+                abhaId,
+                phoneNumber: patientData?.abha_profile?.mobile || 'NA',
+                locationCoordinates: coords
+            });
+        }
 
         res.json({
-            _id: patient._id,
-            name: patient.name,
-            abhaId: patient.abhaId,
-            phoneNumber: patient.phoneNumber,
-            locationCoordinates: patient.locationCoordinates,
-            token: generateToken(patient._id, 'patient')
+            _id: patientAccount._id,
+            name: patientAccount.name,
+            abhaId: patientAccount.abhaId,
+            phoneNumber: patientAccount.phoneNumber,
+            locationCoordinates: patientAccount.locationCoordinates,
+            token: generateToken(patientAccount._id, 'patient')
         });
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -128,7 +139,12 @@ export const updatePatient = async (req, res) => {
 
         if (updates.locationCoordinates && patient?.abhaId) {
             await Patient.updateMany(
-                { 'abha_profile.healthId': patient.abhaId },
+                {
+                    $or: [
+                        { 'abha_profile.healthId': patient.abhaId },
+                        { 'abha_profile.healthIdNumber': patient.abhaId }
+                    ]
+                },
                 { $set: { locationCoordinates: updates.locationCoordinates } }
             );
         }
