@@ -2,7 +2,7 @@ const API_BASE_URL = (process.env.EXPO_PUBLIC_API_BASE_URL || "https://hawkathon
   /\/+$/,
   ""
 );
-const API_BASE_URL1 = (process.env.EXPO_PUBLIC_API_BASE_URL || "https://hawkathon-2026.vercel.app/").replace(
+const API_BASE_URL1 = (process.env.EXPO_PUBLIC_API_BASE_URL_1 || "https://hawkathon-2026.vercel.app/").replace(
   /\/+$/,
   ""
 );
