@@ -13,6 +13,7 @@ import PatientDashboardMock from "../screens/PatientDashboardMock";
 import ConsultantDashboardMock from "../screens/ConsultantDashboardMock";
 import DoctorProfilePage from "../screens/DoctorProfilePage";
 import PatientProfilePage from "../screens/PatientProfilePage";
+import AbhaSevakProfile from "../screens/AbhaSevakProfile";
 import PatientConsultScreen from "../screens/PatientConsultScreen";
 import MedicineAvailabilityScreen from "../screens/MedicineAvailabilityScreen";
 
@@ -68,6 +69,11 @@ export default function AppNavigator() {
         <Stack.Screen
           name="DoctorProfile"
           component={DoctorProfilePage}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="AbhaSevakProfile"
+          component={AbhaSevakProfile}
           options={{ headerShown: false }}
         />
         <Stack.Screen
