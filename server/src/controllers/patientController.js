@@ -1,11 +1,8 @@
-import jwt from 'jsonwebtoken';
-import PatientAccount from '../models/PatientAccount.js';
 import Patient from '../models/Patient.js';
+import { signToken } from '../utils/jwt.js';
 
 const generateToken = (id, role) => {
-    return jwt.sign({ id, role }, process.env.JWT_SECRET || 'fallback_secret_key_123', {
-        expiresIn: '30d'
-    });
+    return signToken({ id, role }, { expiresIn: '30d' });
 };
 
 const parseLocation = (locationCoordinates, latitude, longitude) => {
@@ -42,23 +39,27 @@ export const registerPatient = async (req, res) => {
             return res.status(400).json({ message: 'Please provide all required fields' });
         }
 
-        const existing = await PatientAccount.findOne({ abhaId });
+        const existing = await Patient.findOne({
+            'abha_profile.healthIdNumber': abhaId
+        });
         if (existing) {
             return res.status(400).json({ message: 'Patient already exists' });
         }
 
-        const patient = await PatientAccount.create({
-            name,
-            abhaId,
-            phoneNumber,
+        const patient = await Patient.create({
+            abha_profile: {
+                healthIdNumber: abhaId,
+                name,
+                mobile: phoneNumber
+            },
             locationCoordinates: parsedLocation
         });
 
         res.status(201).json({
             _id: patient._id,
-            name: patient.name,
-            abhaId: patient.abhaId,
-            phoneNumber: patient.phoneNumber,
+            name: patient?.abha_profile?.name,
+            abhaId: patient?.abha_profile?.healthIdNumber,
+            phoneNumber: patient?.abha_profile?.mobile,
             locationCoordinates: patient.locationCoordinates,
             token: generateToken(patient._id, 'patient')
         });
@@ -77,35 +78,21 @@ export const loginPatient = async (req, res) => {
             return res.status(400).json({ message: 'ABHA ID is required' });
         }
 
-        const patientData = await Patient.findOne({
+        const patient = await Patient.findOne({
             'abha_profile.healthIdNumber': abhaId
         });
 
-        if (!patientData) {
+        if (!patient) {
             return res.status(401).json({ message: 'Invalid ABHA ID' });
         }
-
-        let patientAccount = await PatientAccount.findOne({ abhaId });
-        if (!patientAccount) {
-            const coords = patientData.locationCoordinates;
-            if (!coords?.latitude || !coords?.longitude) {
-                return res.status(400).json({ message: 'Patient location not set' });
-            }
-            patientAccount = await PatientAccount.create({
-                name: patientData?.abha_profile?.name || 'Patient',
-                abhaId,
-                phoneNumber: patientData?.abha_profile?.mobile || 'NA',
-                locationCoordinates: coords
-            });
-        }
-
+console.log('foiwehofhewo')
         res.json({
-            _id: patientAccount._id,
-            name: patientAccount.name,
-            abhaId: patientAccount.abhaId,
-            phoneNumber: patientAccount.phoneNumber,
-            locationCoordinates: patientAccount.locationCoordinates,
-            token: generateToken(patientAccount._id, 'patient')
+            _id: patient._id,
+            name: patient?.abha_profile?.name,
+            abhaId: patient?.abha_profile?.healthIdNumber,
+            phoneNumber: patient?.abha_profile?.mobile,
+            locationCoordinates: patient.locationCoordinates,
+            token: generateToken(patient._id, 'patient')
         });
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -118,8 +105,8 @@ export const loginPatient = async (req, res) => {
 export const updatePatient = async (req, res) => {
     try {
         const updates = {};
-        if (req.body.name) updates.name = req.body.name;
-        if (req.body.phoneNumber) updates.phoneNumber = req.body.phoneNumber;
+        if (req.body.name) updates['abha_profile.name'] = req.body.name;
+        if (req.body.phoneNumber) updates['abha_profile.mobile'] = req.body.phoneNumber;
 
         if (req.body.locationCoordinates || req.body.latitude || req.body.longitude) {
             const parsedLocation = parseLocation(
@@ -133,27 +120,15 @@ export const updatePatient = async (req, res) => {
             updates.locationCoordinates = parsedLocation;
         }
 
-        const patient = await PatientAccount.findByIdAndUpdate(req.user._id, updates, {
+        const patient = await Patient.findByIdAndUpdate(req.user._id, updates, {
             new: true
         });
 
-        if (updates.locationCoordinates && patient?.abhaId) {
-            await Patient.updateMany(
-                {
-                    $or: [
-                        { 'abha_profile.healthId': patient.abhaId },
-                        { 'abha_profile.healthIdNumber': patient.abhaId }
-                    ]
-                },
-                { $set: { locationCoordinates: updates.locationCoordinates } }
-            );
-        }
-
         res.json({
             _id: patient._id,
-            name: patient.name,
-            abhaId: patient.abhaId,
-            phoneNumber: patient.phoneNumber,
+            name: patient?.abha_profile?.name,
+            abhaId: patient?.abha_profile?.healthIdNumber,
+            phoneNumber: patient?.abha_profile?.mobile,
             locationCoordinates: patient.locationCoordinates
         });
     } catch (error) {
@@ -161,17 +136,80 @@ export const updatePatient = async (req, res) => {
     }
 };
 
-// @desc    Get current patient profile
+// @desc    Get current patient profile (rich view for mobile app)
 // @route   GET /api/patient/me
 // @access  Private
 export const getPatientMe = async (req, res) => {
-    res.json({
-        _id: req.user._id,
-        name: req.user.name,
-        abhaId: req.user.abhaId,
-        phoneNumber: req.user.phoneNumber,
-        locationCoordinates: req.user.locationCoordinates
-    });
+    try {
+        const patient = req.user;
+        const abha = patient?.abha_profile || {};
+        const health = patient?.health_records || {};
+        const address = patient?.address || {};
+        const insurance = patient?.insurance || {};
+        const asha = patient?.ashaWorker || {};
+
+        const consultations = Array.isArray(patient?.consultations)
+            ? patient.consultations
+            : [];
+        const recent = consultations.length > 0 ? consultations[0] : null;
+
+        const fullAddressParts = [
+            address.addressLine,
+            address.village,
+            address.subDistrict,
+            address.district,
+            address.state,
+            address.pincode,
+            address.country
+        ].filter(Boolean);
+
+        res.json({
+            _id: patient._id,
+            // Basic identifiers
+            name: abha.firstName || abha.name || patient.name,
+            abhaId: abha.healthIdNumber,
+            healthId: abha.healthId,
+            phoneNumber: abha.mobile,
+            // Raw ABHA profile for richer client use
+            abha_profile: abha,
+            // Flattened health record fields used by the mobile app
+            bloodGroup: health.bloodGroup || null,
+            bmi: typeof health.bmi === 'number' ? health.bmi : null,
+            allergies: Array.isArray(health.allergies)
+                ? health.allergies.join(', ')
+                : health.allergies || null,
+            condition: Array.isArray(health.chronicConditions)
+                ? health.chronicConditions.join(', ')
+                : health.chronicConditions || null,
+            // Insurance / policy
+            policyNumber: insurance.policyNumber || null,
+            // Local support / ASHA worker
+            supportName: asha.name || null,
+            supportRole: asha.village
+                ? `ASHA Worker, ${asha.village}`
+                : asha.name
+                ? 'ASHA Worker'
+                : null,
+            // Human readable address line
+            address: fullAddressParts.length ? fullAddressParts.join(', ') : null,
+            // Recent consultation summary used by the profile screen
+            recentConsultation: recent
+                ? {
+                      doctor: recent.doctorName,
+                      specialty: recent.facility,
+                      status: 'Completed',
+                      diagnosis: Array.isArray(recent.diagnosis)
+                          ? recent.diagnosis.join(', ')
+                          : recent.diagnosis,
+                      followUp: recent.followUpDate
+                  }
+                : null,
+            // Location (used for nearby search)
+            locationCoordinates: patient.locationCoordinates
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
 };
 
 // @desc    Get patients near a coordinate

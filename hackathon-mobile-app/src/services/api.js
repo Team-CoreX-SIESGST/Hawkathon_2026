@@ -299,6 +299,8 @@ export const getMyAppointments = (token) =>
   request("/appointments/my", "GET", null, token);
 export const cancelAppointment = (token, id) =>
   request(`/appointments/${id}/cancel`, "PATCH", null, token);
+export const structureAppointment = (token, payload) =>
+  request("/appointments/ai/structure", "POST", payload, token);
 
 
 export async function getHealth() {

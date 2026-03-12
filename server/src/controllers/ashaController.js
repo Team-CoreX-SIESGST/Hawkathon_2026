@@ -1,10 +1,8 @@
-import jwt from 'jsonwebtoken';
 import AshaWorkerAccount from '../models/AshaWorkerAccount.js';
+import { signToken } from '../utils/jwt.js';
 
 const generateToken = (id, role) => {
-    return jwt.sign({ id, role }, process.env.JWT_SECRET || 'fallback_secret_key_123', {
-        expiresIn: '30d'
-    });
+    return signToken({ id, role }, { expiresIn: '30d' });
 };
 
 const parseLocation = (locationCoordinates) => {

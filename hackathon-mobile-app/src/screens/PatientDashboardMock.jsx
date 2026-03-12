@@ -26,7 +26,7 @@ const bottomNavItems = [
   { label: "Home", icon: "home" },
   { label: "Consult", icon: "message-circle", route: "PatientConsult" },
   { label: "Records", icon: "file-text" },
-  { label: "Profile", icon: "user" },
+  { label: "Profile", icon: "user", route: "PatientProfile" },
 ];
 
 export default function PatientDashboardMock() {
