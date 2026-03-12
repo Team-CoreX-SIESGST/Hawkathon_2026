@@ -6,6 +6,8 @@ import {
   Image,
   SafeAreaView,
   ScrollView,
+  TouchableOpacity,
+  Alert,
 } from "react-native";
 
 const quickActions = [
@@ -13,6 +15,7 @@ const quickActions = [
   { title: "Symptom Checker", icon: "SC" },
   { title: "Health Records", icon: "HR" },
   { title: "Find Medicine", icon: "FM" },
+  { title: "Call with Ai", icon: "AI" },
 ];
 
 const doctors = [
@@ -54,51 +57,86 @@ export default function PatientDashboardMock() {
             <Text style={styles.greetingSmall}>Good Morning,</Text>
             <Text style={styles.greeting}>Hello, Elsie</Text>
           </View>
-          <View style={styles.avatarRing}>
+          <TouchableOpacity
+            style={styles.avatarRing}
+            activeOpacity={0.7}
+            onPress={() => Alert.alert("Profile", "Profile avatar tapped")}
+          >
             <Image
               source={require("../../assets/male-icon.png")}
               style={styles.headerAvatar}
               resizeMode="contain"
             />
-          </View>
+          </TouchableOpacity>
         </View>
 
         <Text style={styles.sectionTitle}>Quick Actions</Text>
         <View style={styles.quickGrid}>
           {quickActions.map((item) => (
-            <View key={item.title} style={styles.quickCard}>
+            <TouchableOpacity
+              key={item.title}
+              style={styles.quickCard}
+              activeOpacity={0.8}
+              onPress={() =>
+                Alert.alert("Quick Action", `${item.title} tapped`)
+              }
+            >
               <View style={styles.quickIconCircle}>
                 <Text style={styles.quickIconText}>{item.icon}</Text>
               </View>
               <Text style={styles.quickTitle}>{item.title}</Text>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
 
         <View style={styles.sectionRow}>
           <Text style={styles.sectionTitle}>Popular Doctors</Text>
-          <Text style={styles.sectionLink}>See All</Text>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => Alert.alert("Doctors", "See all doctors tapped")}
+          >
+            <Text style={styles.sectionLink}>See All</Text>
+          </TouchableOpacity>
         </View>
         <View style={styles.doctorRow}>
           {doctors.map((doctor) => (
-            <View key={doctor.name} style={styles.doctorCard}>
+            <TouchableOpacity
+              key={doctor.name}
+              style={styles.doctorCard}
+              activeOpacity={0.8}
+              onPress={() =>
+                Alert.alert("Doctor", `${doctor.name} card tapped`)
+              }
+            >
               <View style={styles.doctorAvatarWrap}>
                 <Image source={doctor.avatar} style={styles.doctorAvatar} />
               </View>
               <Text style={styles.doctorName}>{doctor.name}</Text>
               <Text style={styles.doctorMeta}>{doctor.specialty}</Text>
               <Text style={styles.doctorRating}>* {doctor.rating}</Text>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
 
         <View style={styles.sectionRow}>
           <Text style={styles.sectionTitle}>Nearby Pharmacy</Text>
-          <Text style={styles.sectionLink}>View Map</Text>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => Alert.alert("Pharmacy", "View map tapped")}
+          >
+            <Text style={styles.sectionLink}>View Map</Text>
+          </TouchableOpacity>
         </View>
         <View style={styles.pharmacyList}>
           {pharmacies.map((pharmacy) => (
-            <View key={pharmacy.name} style={styles.pharmacyCard}>
+            <TouchableOpacity
+              key={pharmacy.name}
+              style={styles.pharmacyCard}
+              activeOpacity={0.8}
+              onPress={() =>
+                Alert.alert("Pharmacy", `${pharmacy.name} card tapped`)
+              }
+            >
               <View
                 style={[
                   styles.pharmacyBadge,
@@ -114,7 +152,7 @@ export default function PatientDashboardMock() {
               <View style={styles.pharmacyArrow}>
                 <Text style={styles.pharmacyArrowText}>{">"}</Text>
               </View>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
       </ScrollView>
@@ -122,7 +160,14 @@ export default function PatientDashboardMock() {
       <View style={styles.bottomNav}>
         {["Home", "Consult", "Records", "Pharmacy", "Profile"].map(
           (label, index) => (
-            <View key={label} style={styles.navItem}>
+            <TouchableOpacity
+              key={label}
+              style={styles.navItem}
+              activeOpacity={0.7}
+              onPress={() =>
+                Alert.alert("Navigation", `${label} tab tapped`)
+              }
+            >
               <View
                 style={[styles.navDot, index === 0 && styles.navDotActive]}
               />
@@ -131,7 +176,7 @@ export default function PatientDashboardMock() {
               >
                 {label}
               </Text>
-            </View>
+            </TouchableOpacity>
           )
         )}
       </View>
