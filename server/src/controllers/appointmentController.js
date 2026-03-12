@@ -186,6 +186,7 @@ export const updateDoctorAppointmentStatus = async (req, res) => {
 // @access  Private (Doctor)
 export const startDoctorCall = async (req, res) => {
     try {
+        const { callType } = req.body || {};
         const appointment = await Appointment.findOne({
             _id: req.params.id,
             doctor: req.user._id
@@ -194,8 +195,17 @@ export const startDoctorCall = async (req, res) => {
             return res.status(404).json({ message: 'Appointment not found' });
         }
 
-        if (!appointment.videoLink && appointment.appointmentType !== 'OFFLINE') {
+        const nextType =
+            callType === 'AUDIO_CALL' || callType === 'VIDEO_CALL'
+                ? callType
+                : appointment.appointmentType;
+
+        if (nextType === 'VIDEO_CALL') {
             appointment.videoLink = `https://meet.jit.si/appointment-${appointment._id}`;
+            appointment.appointmentType = 'VIDEO_CALL';
+        } else if (nextType === 'AUDIO_CALL') {
+            appointment.videoLink = `https://meet.jit.si/appointment-${appointment._id}?config.startWithVideoMuted=true`;
+            appointment.appointmentType = 'AUDIO_CALL';
         }
 
         appointment.status = 'IN_CALL';

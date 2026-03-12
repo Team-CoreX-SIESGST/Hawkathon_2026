@@ -31,13 +31,7 @@ export default function DoctorAppointmentsScreen({ navigation }) {
     }
   };
 
-  const isAppointmentTime = (dateStr) => {
-    if (!dateStr) return true;
-    const today = new Date();
-    const date = new Date(dateStr);
-    if (Number.isNaN(date.getTime())) return true;
-    return date.toDateString() === today.toDateString();
-  };
+  const isAppointmentTime = () => true;
 
   useEffect(() => {
     load();
@@ -52,15 +46,12 @@ export default function DoctorAppointmentsScreen({ navigation }) {
     }
   };
 
-  const startCall = async (appointment) => {
+  const startCall = async (appointment, callType) => {
     try {
-      const res = await doctorStartCall(token, appointment._id);
+      const res = await doctorStartCall(token, appointment._id, callType);
       navigation.navigate("CallScreen", {
         url: res.videoLink,
-        title:
-          appointment.appointmentType === "AUDIO_CALL"
-            ? "Audio Call"
-            : "Video Call",
+        title: callType === "AUDIO_CALL" ? "Audio Call" : "Video Call",
       });
       await load();
     } catch (err) {
@@ -138,18 +129,21 @@ export default function DoctorAppointmentsScreen({ navigation }) {
             </Pressable>
           </View>
 
-          {appt.appointmentType !== "OFFLINE" &&
-          appt.status === "BOOKED" &&
-          isAppointmentTime(appt.preferredDate) ? (
-            <Pressable
-              style={styles.callButton}
-              onPress={() => startCall(appt)}
-            >
-              <Text style={styles.callButtonText}>
-                Start {appt.appointmentType === "AUDIO_CALL" ? "Audio" : "Video"}{" "}
-                Call
-              </Text>
-            </Pressable>
+          {appt.status === "BOOKED" && isAppointmentTime(appt.preferredDate) ? (
+            <View style={styles.callRow}>
+              <Pressable
+                style={styles.callButton}
+                onPress={() => startCall(appt, "VIDEO_CALL")}
+              >
+                <Text style={styles.callButtonText}>Start Video Call</Text>
+              </Pressable>
+              <Pressable
+                style={styles.callButtonAlt}
+                onPress={() => startCall(appt, "AUDIO_CALL")}
+              >
+                <Text style={styles.callButtonAltText}>Start Audio Call</Text>
+              </Pressable>
+            </View>
           ) : null}
 
           <TextInput
@@ -242,6 +236,22 @@ const styles = StyleSheet.create({
   },
   callButtonText: {
     color: "#FFFFFF",
+    fontWeight: "700",
+  },
+  callRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 10,
+  },
+  callButtonAlt: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: "#E2E8F0",
+    alignItems: "center",
+  },
+  callButtonAltText: {
+    color: "#0F172A",
     fontWeight: "700",
   },
   input: {

@@ -34,6 +34,7 @@ export default function PatientConsultScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [notifications, setNotifications] = useState([]);
+  const [slotsOpen, setSlotsOpen] = useState(false);
 
   const coords = useMemo(() => user?.locationCoordinates, [user]);
 
@@ -261,27 +262,30 @@ export default function PatientConsultScreen({ navigation }) {
       {selectedDoctor?.availableSlots?.length ? (
         <>
           <Text style={styles.sectionTitle}>Available Slots</Text>
-          <View style={styles.slotRow}>
-            {selectedDoctor.availableSlots.map((slot) => (
-              <Pressable
-                key={slot}
-                style={[
-                  styles.slotChip,
-                  preferredTime === slot && styles.slotChipActive,
-                ]}
-                onPress={() => setPreferredTime(slot)}
-              >
-                <Text
-                  style={[
-                    styles.slotText,
-                    preferredTime === slot && styles.slotTextActive,
-                  ]}
+          <Pressable
+            style={styles.dropdown}
+            onPress={() => setSlotsOpen((prev) => !prev)}
+          >
+            <Text style={styles.dropdownText}>
+              {preferredTime || "Select a slot"}
+            </Text>
+          </Pressable>
+          {slotsOpen ? (
+            <View style={styles.dropdownList}>
+              {selectedDoctor.availableSlots.map((slot) => (
+                <Pressable
+                  key={slot}
+                  style={styles.dropdownItem}
+                  onPress={() => {
+                    setPreferredTime(slot);
+                    setSlotsOpen(false);
+                  }}
                 >
-                  {slot}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+                  <Text style={styles.dropdownItemText}>{slot}</Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
         </>
       ) : null}
 
@@ -303,20 +307,27 @@ export default function PatientConsultScreen({ navigation }) {
       ) : (
         appointments.map((appt) => (
           <View key={appt._id} style={styles.appointmentCard}>
-            <Text style={styles.appointmentTitle}>
-              {appt.doctor?.name || "Doctor"}
+            <View style={styles.appointmentHeader}>
+              <Text style={styles.appointmentTitle}>
+                {appt.doctor?.name || "Doctor"}
+              </Text>
+              {appt.appointmentType ? (
+                <View style={styles.typeBadge}>
+                  <Text style={styles.typeBadgeText}>
+                    {appt.appointmentType.replace("_", " ")}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+            <Text style={styles.appointmentProblem}>
+              {appt.problem || "Appointment"}
             </Text>
             <Text style={styles.appointmentMeta}>
-              {appt.preferredDate} · {appt.preferredTime}
+              {appt.preferredDate}  {appt.preferredTime}
             </Text>
             <Text style={styles.appointmentMeta}>
               Status: {appt.status}
             </Text>
-            {appt.appointmentType ? (
-              <Text style={styles.appointmentMeta}>
-                Type: {appt.appointmentType}
-              </Text>
-            ) : null}
             {appt.status === "BOOKED" ? (
               <Pressable
                 style={styles.cancelButton}
@@ -491,6 +502,36 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontWeight: "700",
   },
+  dropdown: {
+    marginTop: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    backgroundColor: "#FFFFFF",
+  },
+  dropdownText: {
+    color: "#0F172A",
+    fontWeight: "600",
+  },
+  dropdownList: {
+    marginTop: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    backgroundColor: "#FFFFFF",
+    overflow: "hidden",
+  },
+  dropdownItem: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
+  },
+  dropdownItemText: {
+    color: "#0F172A",
+  },
   primaryButton: {
     marginTop: 14,
     paddingVertical: 14,
@@ -514,6 +555,27 @@ const styles = StyleSheet.create({
     borderColor: "#E2E8F0",
   },
   appointmentTitle: {
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  appointmentHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  appointmentProblem: {
+    marginTop: 6,
+    color: "#0F172A",
+    fontWeight: "600",
+  },
+  typeBadge: {
+    backgroundColor: "#E7FAF8",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  typeBadgeText: {
+    fontSize: 11,
     fontWeight: "700",
     color: "#0F172A",
   },
@@ -564,3 +626,12 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 });
+
+
+
+
+
+
+
+
+
