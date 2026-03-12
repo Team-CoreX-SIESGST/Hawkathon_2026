@@ -25,7 +25,7 @@ const fallbackProfile = {
   languages: ["Punjabi", "Hindi"],
 };
 
-export default function DoctorProfilePage() {
+export default function DoctorProfilePage({ navigation }) {
   const { token, user } = useContext(AuthContext);
   const [profile, setProfile] = useState(fallbackProfile);
   const [loading, setLoading] = useState(false);
@@ -173,9 +173,26 @@ export default function DoctorProfilePage() {
       </ScrollView>
 
       <View style={styles.footer}>
-        <Pressable style={styles.primaryButton}>
-          <Text style={styles.primaryButtonText}>Book Appointment</Text>
-        </Pressable>
+        <View style={styles.footerActions}>
+          <Pressable
+            style={styles.primaryButton}
+            onPress={() => navigation.navigate("DoctorAppointments")}
+          >
+            <Text style={styles.primaryButtonText}>Appointments</Text>
+          </Pressable>
+          <Pressable
+            style={styles.secondaryButton}
+            onPress={() => navigation.navigate("DoctorPastPatients")}
+          >
+            <Text style={styles.secondaryButtonText}>Past Patients</Text>
+          </Pressable>
+          <Pressable
+            style={styles.secondaryButton}
+            onPress={() => navigation.navigate("DoctorNotifications")}
+          >
+            <Text style={styles.secondaryButtonText}>Notifications</Text>
+          </Pressable>
+        </View>
       </View>
 
       {loading && (
@@ -408,6 +425,9 @@ const styles = StyleSheet.create({
     right: 20,
     bottom: 16,
   },
+  footerActions: {
+    gap: 10,
+  },
   primaryButton: {
     backgroundColor: "#5DC1B9",
     borderRadius: 18,
@@ -423,6 +443,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     color: "#FFFFFF",
+  },
+  secondaryButton: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    paddingVertical: 14,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  secondaryButtonText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#0F172A",
   },
   loadingOverlay: {
     position: "absolute",
