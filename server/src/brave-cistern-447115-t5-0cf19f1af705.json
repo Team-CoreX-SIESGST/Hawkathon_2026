@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "brave-cistern-447115-t5",
+  "private_key_id": "0cf19f1af7056e2a1624449fe60ecc7e28836900",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDGUHAo1OGMhvmt\nPKrfS9+2ta3KvGIGts+BVlOPBAyOdlxnoWr8F8gE23q52av22tj+5+aCrIB9hn+z\n1obmCZYTcK4iW6kvb7IyrKJB8b7xANSx1kBxUe47tygLcBVkUAntgjfsrFklDYyd\nKvw1h/9PXgpSlGCDz1CB+H7lsxLRokW/oKGKVwMElsyRO5etUZSBW+EsgUJEUoEw\naNd81NNpLHeByoZcfQDffCdGjEwwdBOMRssXZOVOC4Uv93HvDqTM2GvaidcntA04\nE8jS033odCgKVz623HD8nRM8PrX6/1vLDNRd0y0aID2/s+IMELwUrycQtTAEmtsb\npgynBOJFAgMBAAECggEABzOsnw78Eepk7tGhMvLCcRQv94jX1n6VEpFb/3maKyJJ\nQMov5G/Ip8SAtHcfM5vG/ZrWWDCDigt0X8eOppP6i0IwULcbccmQox551gM9d+sb\nzkmFlZfwGuMP5TpwzG/LrIBqH4IyypGvZZXGCvuhXfSAU3dn+eFxfwbTNOxH5qz5\nksny4P9UmcQLFtkk+BNhiHwfHnRGlrs77KCidh5qGy6giAmjhFQjsUJjV1Nbl5lJ\nhdJhp4qM/cnBJaA+g7jolbz/LkB+WoGNOW2kvlGT0sYL2xs/Q5bEJsnLqjHgyRbd\nFfHl6mRRAh/HZ+kuUr5u/3NMvpPJWM22XMrP4wm5EQKBgQDqPxAl8heM+kRWPECO\neeXjV01j9chM5IcrAVehIeVFFfoDzsLZq+Qlimnf09pRz5577H6f3XVSTrXymB5S\nLJ8CG8FEJ90HFmHtI8UORE+5w4p2GkdLaKC3tMg4CUt3qqw0BxhwMriKDH9ANSP1\nSWuZvUdxzgrYbpJIS5L1Uf99FwKBgQDYuyFMYV5EcYNrQ77R/1KQesQZHkNjMf3S\nHIGbKxVk2VtbUY9AfCSvufT1FeaVz76rFNIe+PIZMxlzroB6HbYp77y0CntExglx\nE5GdTbothKhxtMi0LwlphEme9vqq2S7Hu3V7XuyqGuHLPDF1lq2NRYSDlFsvFDLT\n8RPg693NAwKBgDtblZz39s3LkUuE4xr3erCcK8k7u/D4K+RS58C2FSHnir4yQ5/i\n9eIpa+DDD1yRzug6KnAaLyOXPHXn5C8QjY58OAIsU8769f+gg8u0tbst+MUqrYxH\nTAqhLec9O7lsL0zTy3aK88ZPmmNL0/vRCgogM518B7WGd10IgYnWqHYrAoGAXGXL\nGGkaa0uJn51OKPEVHgt4tsy0JgIWGBGXH7QKduhDjncC/5btfQ1mZWZk29Gpk/5Y\nZmPzstKaMzteArHQC6jtZkRhsTxMoiyZk9qjWOyJc5CDUG4NMTL4wBDDZTsaOoSs\n3V/mvc6gHKkY3OzUKLpOeFozVari0ICi3O0xrkkCgYBEu+umqDJa2l5RZHQzUGOY\nouKYRWwNsuTIBOkJJvrRcwnQIFm8HYDGGNl/MrNngifb/gFvz+el3nB2Dpz4VOY5\nkr0zlPC1QjF+El0fxm4ANZGMLg3TGnUt7mxFXn5ffMyLT8pN3HFY3g1pf8v6onjz\nxTVPGWxl4b4YTluwCZgs9w==\n-----END PRIVATE KEY-----\n",
+  "client_email": "arogyagram-bot@brave-cistern-447115-t5.iam.gserviceaccount.com",
+  "client_id": "118091234820387990427",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/arogyagram-bot%40brave-cistern-447115-t5.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

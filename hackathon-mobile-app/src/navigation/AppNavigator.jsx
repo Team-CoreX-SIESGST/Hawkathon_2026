@@ -15,6 +15,7 @@ import DoctorProfilePage from "../screens/DoctorProfilePage";
 import PatientProfilePage from "../screens/PatientProfilePage";
 import PatientConsultScreen from "../screens/PatientConsultScreen";
 import MedicineAvailabilityScreen from "../screens/MedicineAvailabilityScreen";
+import MedicineRecordsScreen from "../screens/MedicineRecordsScreen";
 import DoctorAppointmentsScreen from "../screens/DoctorAppointmentsScreen";
 import CallScreen from "../screens/CallScreen";
 import DoctorNotificationsScreen from "../screens/DoctorNotificationsScreen";
@@ -82,6 +83,11 @@ export default function AppNavigator() {
         <Stack.Screen
           name="MedicineAvailability"
           component={MedicineAvailabilityScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="MedicineRecords"
+          component={MedicineRecordsScreen}
           options={{ headerShown: false }}
         />
         <Stack.Screen

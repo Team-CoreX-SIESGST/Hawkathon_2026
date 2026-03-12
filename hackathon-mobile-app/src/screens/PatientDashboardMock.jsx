@@ -25,7 +25,7 @@ const quickActions = [
 const bottomNavItems = [
   { label: "Home", icon: "home" },
   { label: "Consult", icon: "message-circle", route: "PatientConsult" },
-  { label: "Records", icon: "file-text" },
+  { label: "Records", icon: "file-text", route: "MedicineRecords" },
   { label: "Profile", icon: "user", route: "PatientProfile" },
 ];
 
@@ -161,33 +161,23 @@ export default function PatientDashboardMock() {
 
       <View style={styles.bottomNav}>
         {bottomNavItems.map((item, index) => {
-          const isActive = index === 0;
+          const isActive = item.label === "Home";
           return (
             <TouchableOpacity
               key={item.label}
               style={styles.navItem}
-              activeOpacity={0.7}
-              onPress={() =>
-                item.route
-                  ? navigation.navigate(item.route)
-                  : Alert.alert("Navigation", `${item.label} tab tapped`)
-              }
+              onPress={() => {
+                if (item.route) {
+                  navigation.navigate(item.route);
+                }
+              }}
             >
-              <View
-                style={[
-                  styles.navIconCircle,
-                  isActive && styles.navIconCircleActive,
-                ]}
-              >
-                <Feather
-                  name={item.icon}
-                  size={18}
-                  color={isActive ? "#10B981" : "#6B7280"}
-                />
-              </View>
-              <Text
-                style={[styles.navLabel, isActive && styles.navLabelActive]}
-              >
+              <Feather
+                name={item.icon}
+                size={22}
+                color={isActive ? "#0F172A" : "#94A3B8"}
+              />
+              <Text style={[styles.navLabel, isActive && styles.navLabelActive]}>
                 {item.label}
               </Text>
             </TouchableOpacity>
