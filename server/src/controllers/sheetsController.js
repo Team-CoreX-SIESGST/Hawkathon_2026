@@ -1,4 +1,14 @@
 import { google } from 'googleapis';
+import { createRequire } from 'module';
+import { fileURLToPath } from 'url';
+import path from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load the service account JSON file directly — avoids private key newline issues with dotenv
+const require = createRequire(import.meta.url);
+const serviceAccount = require(path.resolve(__dirname, '../brave-cistern-447115-t5-c4a0113b34ff.json'));
 
 const SHEET_IDS = [
   '1Ece40wMrW4uy2Yz1dvEjXalhU56oB3zK5IZtKdxj2uw',
@@ -8,16 +18,6 @@ const SHEET_IDS = [
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly'];
 
 function getAuth() {
-  const serviceAccount = {
-    type: 'service_account',
-    project_id: process.env.GOOGLE_SA_PROJECT_ID,
-    private_key_id: process.env.GOOGLE_SA_PRIVATE_KEY_ID,
-    private_key: (process.env.GOOGLE_SA_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
-    client_email: process.env.GOOGLE_SA_CLIENT_EMAIL,
-    client_id: process.env.GOOGLE_SA_CLIENT_ID,
-    token_uri: 'https://oauth2.googleapis.com/token',
-  };
-
   return new google.auth.GoogleAuth({
     credentials: serviceAccount,
     scopes: SCOPES,

@@ -11,8 +11,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 
+// Sheets API runs on local server (has the service account key) not Vercel
 const API_BASE = (
-  process.env.EXPO_PUBLIC_API_BASE_URL || "https://hawkathon-2026-five.vercel.app"
+  process.env.EXPO_PUBLIC_LOCAL_SERVER_URL || "http://10.0.16.63:5002"
 ).replace(/\/+$/, "");
 
 export default function MedicineRecordsScreen({ navigation }) {
