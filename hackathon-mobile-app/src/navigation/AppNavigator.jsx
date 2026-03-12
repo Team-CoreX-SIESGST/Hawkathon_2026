@@ -16,6 +16,12 @@ import PatientProfilePage from "../screens/PatientProfilePage";
 import AbhaSevakProfile from "../screens/AbhaSevakProfile";
 import PatientConsultScreen from "../screens/PatientConsultScreen";
 import MedicineAvailabilityScreen from "../screens/MedicineAvailabilityScreen";
+import MedicineRecordsScreen from "../screens/MedicineRecordsScreen";
+import DoctorAppointmentsScreen from "../screens/DoctorAppointmentsScreen";
+import CallScreen from "../screens/CallScreen";
+import DoctorNotificationsScreen from "../screens/DoctorNotificationsScreen";
+import DoctorPastPatientsScreen from "../screens/DoctorPastPatientsScreen";
+import VideoCallScreen from "../screens/VideoCallScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -84,6 +90,36 @@ export default function AppNavigator() {
         <Stack.Screen
           name="MedicineAvailability"
           component={MedicineAvailabilityScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="MedicineRecords"
+          component={MedicineRecordsScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="DoctorAppointments"
+          component={DoctorAppointmentsScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="CallScreen"
+          component={CallScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="DoctorNotifications"
+          component={DoctorNotificationsScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="DoctorPastPatients"
+          component={DoctorPastPatientsScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="VideoCall"
+          component={VideoCallScreen}
           options={{ headerShown: false }}
         />
       </Stack.Navigator>

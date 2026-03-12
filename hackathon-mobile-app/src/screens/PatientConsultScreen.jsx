@@ -6,6 +6,7 @@ import {
   ScrollView,
   TextInput,
   Pressable,
+  Modal,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { AuthContext } from "../context/AuthContext";
@@ -15,9 +16,12 @@ import {
   getMyAppointments,
   cancelAppointment,
   structureAppointment,
+  patientNotifications,
+  patientReadNotification,
 } from "../services/api";
+import { createSocket } from "../services/socket";
 
-export default function PatientConsultScreen() {
+export default function PatientConsultScreen({ navigation }) {
   const { token, user } = useContext(AuthContext);
   const [doctors, setDoctors] = useState([]);
   const [appointments, setAppointments] = useState([]);
@@ -29,9 +33,11 @@ export default function PatientConsultScreen() {
   const [preferredTime, setPreferredTime] = useState("");
   const [appointmentType, setAppointmentType] = useState("OFFLINE");
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [urgencyScore, setUrgencyScore] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [notifications, setNotifications] = useState([]);
+  const [slotsOpen, setSlotsOpen] = useState(false);
+  const [incomingCall, setIncomingCall] = useState(null);
 
   const coords = useMemo(() => user?.locationCoordinates, [user]);
 
@@ -55,10 +61,37 @@ export default function PatientConsultScreen() {
     }
   };
 
+  const loadNotifications = async () => {
+    if (!token) return;
+    try {
+      const data = await patientNotifications(token);
+      setNotifications(data.results || []);
+    } catch (err) {
+      setNotifications([]);
+    }
+  };
+
   useEffect(() => {
     loadDoctors();
     loadAppointments();
+    loadNotifications();
   }, []);
+
+  useEffect(() => {
+    if (!user?._id) return;
+    const socket = createSocket();
+    socket.emit("register-user", {
+      userId: user._id,
+      role: "patient",
+      name: user?.abha_profile?.name || user?.name,
+    });
+    socket.on("incoming-call", (payload) => {
+      setIncomingCall(payload);
+    });
+    return () => {
+      socket.disconnect();
+    };
+  }, [user?._id]);
 
   const handleBook = async () => {
     if (!selectedDoctor) {
@@ -87,7 +120,6 @@ export default function PatientConsultScreen() {
       setPreferredDate("");
       setPreferredTime("");
       setSelectedDoctor(null);
-      setUrgencyScore(null);
       await loadAppointments();
     } catch (err) {
       setError(err.message || "Unable to book appointment");
@@ -110,9 +142,6 @@ export default function PatientConsultScreen() {
       });
       if (ai?.structuredQuery) {
         setDescription(ai.structuredQuery);
-      }
-      if (ai?.urgencyScore !== undefined) {
-        setUrgencyScore(ai.urgencyScore);
       }
     } catch (err) {
       setError(err.message || "AI structuring failed");
@@ -148,7 +177,11 @@ export default function PatientConsultScreen() {
               styles.doctorCard,
               selectedDoctor?._id === doctor._id && styles.doctorCardActive,
             ]}
-            onPress={() => setSelectedDoctor(doctor)}
+            onPress={() => {
+              setSelectedDoctor(doctor);
+              setPreferredTime("");
+              setSlotsOpen(false);
+            }}
           >
             <View>
               <Text style={styles.doctorName}>{doctor.name}</Text>
@@ -158,11 +191,6 @@ export default function PatientConsultScreen() {
               <Text style={styles.doctorMeta}>
                 {doctor.distanceKm} km away
               </Text>
-              {doctor.availableSlots?.length ? (
-                <Text style={styles.doctorMeta}>
-                  Slots: {doctor.availableSlots.join(", ")}
-                </Text>
-              ) : null}
             </View>
           </Pressable>
         ))
@@ -170,7 +198,7 @@ export default function PatientConsultScreen() {
 
       <Text style={styles.sectionTitle}>Appointment Type</Text>
       <View style={styles.toggleRow}>
-        {["OFFLINE", "VIDEO_CALL"].map((type) => (
+        {["OFFLINE", "VIDEO_CALL", "AUDIO_CALL"].map((type) => (
           <Pressable
             key={type}
             style={[
@@ -185,7 +213,11 @@ export default function PatientConsultScreen() {
                 appointmentType === type && styles.toggleTextActive,
               ]}
             >
-              {type === "OFFLINE" ? "Offline" : "Video Call"}
+              {type === "OFFLINE"
+                ? "Offline"
+                : type === "AUDIO_CALL"
+                ? "Audio Call"
+                : "Video Call"}
             </Text>
           </Pressable>
         ))}
@@ -217,11 +249,6 @@ export default function PatientConsultScreen() {
         </Pressable>
       </View>
 
-      {urgencyScore !== null ? (
-        <Text style={styles.urgencyText}>
-          Urgency Score: {urgencyScore}/100
-        </Text>
-      ) : null}
 
       <TextInput
         style={styles.input}
@@ -248,36 +275,42 @@ export default function PatientConsultScreen() {
           }}
         />
       ) : null}
-      <TextInput
-        style={styles.input}
-        placeholder="Preferred time (e.g. 10:30 AM)"
-        value={preferredTime}
-        onChangeText={setPreferredTime}
-      />
-
       {selectedDoctor?.availableSlots?.length ? (
-        <View style={styles.slotRow}>
-          {selectedDoctor.availableSlots.map((slot) => (
-            <Pressable
-              key={slot}
-              style={[
-                styles.slotChip,
-                preferredTime === slot && styles.slotChipActive,
-              ]}
-              onPress={() => setPreferredTime(slot)}
-            >
-              <Text
-                style={[
-                  styles.slotText,
-                  preferredTime === slot && styles.slotTextActive,
-                ]}
-              >
-                {slot}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-      ) : null}
+        <>
+          <Text style={styles.sectionTitle}>Available Slots</Text>
+          <Pressable
+            style={styles.dropdown}
+            onPress={() => setSlotsOpen((prev) => !prev)}
+          >
+            <Text style={styles.dropdownText}>
+              {preferredTime || "Select a slot"}
+            </Text>
+          </Pressable>
+          {slotsOpen ? (
+            <View style={styles.dropdownList}>
+              {selectedDoctor.availableSlots.map((slot) => (
+                <Pressable
+                  key={slot}
+                  style={styles.dropdownItem}
+                  onPress={() => {
+                    setPreferredTime(slot);
+                    setSlotsOpen(false);
+                  }}
+                >
+                  <Text style={styles.dropdownItemText}>{slot}</Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
+        </>
+      ) : (
+        <TextInput
+          style={styles.input}
+          placeholder="Preferred time (e.g. 10:30 AM)"
+          value={preferredTime}
+          onChangeText={setPreferredTime}
+        />
+      )}
 
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
@@ -297,30 +330,27 @@ export default function PatientConsultScreen() {
       ) : (
         appointments.map((appt) => (
           <View key={appt._id} style={styles.appointmentCard}>
-            <Text style={styles.appointmentTitle}>
-              {appt.doctor?.name || "Doctor"}
+            <View style={styles.appointmentHeader}>
+              <Text style={styles.appointmentTitle}>
+                {appt.doctor?.name || "Doctor"}
+              </Text>
+              {appt.appointmentType ? (
+                <View style={styles.typeBadge}>
+                  <Text style={styles.typeBadgeText}>
+                    {appt.appointmentType.replace("_", " ")}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+            <Text style={styles.appointmentProblem}>
+              {appt.problem || "Appointment"}
             </Text>
             <Text style={styles.appointmentMeta}>
-              {appt.preferredDate} · {appt.preferredTime}
+              {appt.preferredDate}  {appt.preferredTime}
             </Text>
             <Text style={styles.appointmentMeta}>
               Status: {appt.status}
             </Text>
-            {appt.urgencyScore !== undefined ? (
-              <Text style={styles.appointmentMeta}>
-                Urgency: {appt.urgencyScore}/100
-              </Text>
-            ) : null}
-            {appt.appointmentType ? (
-              <Text style={styles.appointmentMeta}>
-                Type: {appt.appointmentType}
-              </Text>
-            ) : null}
-            {appt.videoLink ? (
-              <Text style={styles.appointmentMeta}>
-                Video: {appt.videoLink}
-              </Text>
-            ) : null}
             {appt.status === "BOOKED" ? (
               <Pressable
                 style={styles.cancelButton}
@@ -332,6 +362,70 @@ export default function PatientConsultScreen() {
           </View>
         ))
       )}
+
+      <Text style={styles.sectionTitle}>Notifications</Text>
+      {notifications.length === 0 ? (
+        <Text style={styles.helperText}>No notifications.</Text>
+      ) : (
+        notifications.map((note) => (
+          <View key={note._id} style={styles.notificationCard}>
+            <Text style={styles.notificationText}>{note.message}</Text>
+            {note?.data?.videoLink ? (
+              <Pressable
+                style={styles.callButton}
+                onPress={async () => {
+                  await patientReadNotification(token, note._id);
+                  navigation.navigate("CallScreen", {
+                    url: note.data.videoLink,
+                    title: "Incoming Call",
+                  });
+                }}
+              >
+                <Text style={styles.callButtonText}>Join Call</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        ))
+      )}
+
+      <Modal visible={!!incomingCall} transparent animationType="slide">
+        <View style={styles.callOverlay}>
+          <View style={styles.callCard}>
+            <Text style={styles.callTitle}>
+              Incoming{" "}
+              {incomingCall?.callType === "AUDIO_CALL" ? "Audio" : "Video"} Call
+            </Text>
+            <Text style={styles.callSubtitle}>
+              {incomingCall?.fromName || "Doctor"} is calling you
+            </Text>
+            <View style={styles.callActions}>
+              <Pressable
+                style={[styles.callActionButton, styles.callDecline]}
+                onPress={() => setIncomingCall(null)}
+              >
+                <Text style={styles.callDeclineText}>Decline</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.callActionButton, styles.callAccept]}
+                onPress={() => {
+                  const roomId = incomingCall?.roomId;
+                  setIncomingCall(null);
+                  if (roomId) {
+                    navigation.navigate("VideoCall", {
+                      roomId,
+                      userRole: "patient",
+                      userName: user?.abha_profile?.name || user?.name,
+                      remoteName: incomingCall?.fromName,
+                    });
+                  }
+                }}
+              >
+                <Text style={styles.callAcceptText}>Accept</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -408,11 +502,6 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontWeight: "700",
   },
-  urgencyText: {
-    marginTop: 8,
-    color: "#B91C1C",
-    fontWeight: "700",
-  },
   toggleRow: {
     flexDirection: "row",
     gap: 10,
@@ -449,31 +538,35 @@ const styles = StyleSheet.create({
     color: "#0F172A",
     fontWeight: "700",
   },
-  slotRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
+  dropdown: {
     marginTop: 8,
-  },
-  slotChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#E2E8F0",
     backgroundColor: "#FFFFFF",
   },
-  slotChipActive: {
-    backgroundColor: "#5DC1B9",
-    borderColor: "#5DC1B9",
+  dropdownText: {
+    color: "#0F172A",
+    fontWeight: "600",
   },
-  slotText: {
-    color: "#475569",
-    fontSize: 12,
+  dropdownList: {
+    marginTop: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    backgroundColor: "#FFFFFF",
+    overflow: "hidden",
   },
-  slotTextActive: {
-    color: "#FFFFFF",
-    fontWeight: "700",
+  dropdownItem: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
+  },
+  dropdownItemText: {
+    color: "#0F172A",
   },
   primaryButton: {
     marginTop: 14,
@@ -501,6 +594,27 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#0F172A",
   },
+  appointmentHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  appointmentProblem: {
+    marginTop: 6,
+    color: "#0F172A",
+    fontWeight: "600",
+  },
+  typeBadge: {
+    backgroundColor: "#E7FAF8",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  typeBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
   appointmentMeta: {
     marginTop: 4,
     color: "#64748B",
@@ -525,4 +639,82 @@ const styles = StyleSheet.create({
     marginTop: 10,
     color: "#DC2626",
   },
+  notificationCard: {
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  notificationText: {
+    color: "#0F172A",
+  },
+  callButton: {
+    marginTop: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: "#0F172A",
+    alignItems: "center",
+  },
+  callButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+  },
+  callOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(15,23,42,0.7)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+  },
+  callCard: {
+    width: "100%",
+    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
+    padding: 20,
+  },
+  callTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  callSubtitle: {
+    marginTop: 6,
+    color: "#64748B",
+  },
+  callActions: {
+    marginTop: 16,
+    flexDirection: "row",
+    gap: 12,
+  },
+  callActionButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  callDecline: {
+    backgroundColor: "#FEE2E2",
+  },
+  callDeclineText: {
+    color: "#B91C1C",
+    fontWeight: "700",
+  },
+  callAccept: {
+    backgroundColor: "#0F172A",
+  },
+  callAcceptText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+  },
 });
+
+
+
+
+
+
+
+
+

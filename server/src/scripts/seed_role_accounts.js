@@ -46,11 +46,14 @@ const PLACE_TO_TOWN = {
 };
 
 const defaultSlots = [
-    '09:00 AM',
-    '10:30 AM',
+    '11:00 AM',
     '12:00 PM',
+    '01:00 PM',
+    '02:00 PM',
     '03:00 PM',
-    '04:30 PM'
+    '04:00 PM',
+    '05:00 PM',
+    '06:00 PM'
 ];
 
 const doctorProfiles = [
@@ -65,6 +68,8 @@ const doctorProfiles = [
     { name: 'Dr. Ananya Singh', username: 'dr.ananya', hospitalName: 'Rajpura CHC' },
     { name: 'Dr. Rahul Verma', username: 'dr.rahul', hospitalName: 'Sirhind SDH' }
 ];
+
+const doctorPhoneBase = 9876500000;
 
 const ashaProfiles = [
     { name: 'Sunita Devi', username: 'asha.sunita' },
@@ -173,6 +178,7 @@ const seedAccounts = async () => {
         const doctor = {
             ...doctorProfile,
             password: 'Doctor@123',
+            phoneNumber: String(doctorPhoneBase + index + 1),
             locationCoordinates,
             availableSlots: defaultSlots
         };
@@ -184,6 +190,7 @@ const seedAccounts = async () => {
                     $set: {
                         name: doctor.name,
                         hospitalName: doctor.hospitalName,
+                        phoneNumber: doctor.phoneNumber,
                         locationCoordinates: doctor.locationCoordinates,
                         availableSlots: doctor.availableSlots
                     },

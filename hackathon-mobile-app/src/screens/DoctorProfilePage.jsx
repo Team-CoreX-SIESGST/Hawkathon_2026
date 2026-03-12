@@ -25,10 +25,15 @@ const fallbackProfile = {
   languages: ["Punjabi", "Hindi"],
 };
 
-export default function DoctorProfilePage() {
-  const { token, user } = useContext(AuthContext);
+export default function DoctorProfilePage({ navigation }) {
+  const { token, user, signOut } = useContext(AuthContext);
   const [profile, setProfile] = useState(fallbackProfile);
   const [loading, setLoading] = useState(false);
+
+  const handleLogout = () => {
+    signOut();
+    navigation.reset({ index: 0, routes: [{ name: "RoleSelection" }] });
+  };
 
   const mergedProfile = useMemo(() => {
     if (!user) return profile;
@@ -84,9 +89,14 @@ export default function DoctorProfilePage() {
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.headerRow}>
           <Text style={styles.headerTitle}>Doctor Profile</Text>
-          <Pressable style={styles.shareButton}>
-            <Text style={styles.shareIcon}>↗</Text>
-          </Pressable>
+          <View style={styles.headerActions}>
+            <Pressable style={styles.shareButton}>
+              <Text style={styles.shareIcon}>↗</Text>
+            </Pressable>
+            <Pressable style={styles.logoutButton} onPress={handleLogout}>
+              <Text style={styles.logoutText}>Logout</Text>
+            </Pressable>
+          </View>
         </View>
 
         <View style={styles.profileCard}>
@@ -173,9 +183,26 @@ export default function DoctorProfilePage() {
       </ScrollView>
 
       <View style={styles.footer}>
-        <Pressable style={styles.primaryButton}>
-          <Text style={styles.primaryButtonText}>Book Appointment</Text>
-        </Pressable>
+        <View style={styles.footerActions}>
+          <Pressable
+            style={styles.primaryButton}
+            onPress={() => navigation.navigate("DoctorAppointments")}
+          >
+            <Text style={styles.primaryButtonText}>Appointments</Text>
+          </Pressable>
+          <Pressable
+            style={styles.secondaryButton}
+            onPress={() => navigation.navigate("DoctorPastPatients")}
+          >
+            <Text style={styles.secondaryButtonText}>Past Patients</Text>
+          </Pressable>
+          <Pressable
+            style={styles.secondaryButton}
+            onPress={() => navigation.navigate("DoctorNotifications")}
+          >
+            <Text style={styles.secondaryButtonText}>Notifications</Text>
+          </Pressable>
+        </View>
       </View>
 
       {loading && (
@@ -208,6 +235,11 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#0F172A",
   },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
   shareButton: {
     width: 36,
     height: 36,
@@ -219,6 +251,17 @@ const styles = StyleSheet.create({
   shareIcon: {
     fontSize: 16,
     color: "#5DC1B9",
+  },
+  logoutButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 14,
+    backgroundColor: "#0F172A",
+  },
+  logoutText: {
+    color: "#FFFFFF",
+    fontSize: 12.5,
+    fontWeight: "700",
   },
   profileCard: {
     backgroundColor: "#F8FFFE",
@@ -408,6 +451,9 @@ const styles = StyleSheet.create({
     right: 20,
     bottom: 16,
   },
+  footerActions: {
+    gap: 10,
+  },
   primaryButton: {
     backgroundColor: "#5DC1B9",
     borderRadius: 18,
@@ -423,6 +469,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     color: "#FFFFFF",
+  },
+  secondaryButton: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    paddingVertical: 14,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  secondaryButtonText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#0F172A",
   },
   loadingOverlay: {
     position: "absolute",

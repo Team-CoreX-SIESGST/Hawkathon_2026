@@ -1,8 +1,9 @@
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
 
 const callGemini = async (prompt) => {
     if (!GEMINI_API_KEY) return null;
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
 
     const response = await fetch(url, {
         method: 'POST',
@@ -68,4 +69,19 @@ Description: ${description || ''}`;
     const parsed = extractJson(text);
     if (parsed?.structuredQuery) return parsed;
     return fallbackUrgency(symptoms, description);
+};
+
+export const summarizeConversation = async ({ transcript, notes }) => {
+    const prompt = `Summarize the medical conversation and extract key insights.
+Return ONLY JSON with keys: summary (string), insights (string).
+Transcript: ${transcript || ''}
+Doctor Notes: ${notes || ''}`;
+
+    const text = await callGemini(prompt);
+    const parsed = extractJson(text);
+    if (parsed?.summary) return parsed;
+    return {
+        summary: 'Summary unavailable. Provide doctor notes for better insights.',
+        insights: notes || ''
+    };
 };

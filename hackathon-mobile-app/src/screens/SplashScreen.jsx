@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useContext, useEffect, useRef } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   View,
@@ -11,10 +11,12 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
+import { AuthContext } from "../context/AuthContext";
 
 export default function SplashScreen() {
   const navigation = useNavigation();
   const pulse = useRef(new Animated.Value(1)).current;
+  const { role, initializing } = useContext(AuthContext);
 
   useEffect(() => {
     const animation = Animated.loop(
@@ -36,14 +38,23 @@ export default function SplashScreen() {
 
     animation.start();
     const timeout = setTimeout(() => {
-      navigation.replace("RoleSelection");
-    }, 2200);
+      if (initializing) return;
+      if (role === "patient") {
+        navigation.replace("PatientDashboardMock");
+      } else if (role === "doctor") {
+        navigation.replace("DoctorProfile");
+      } else if (role === "asha") {
+        navigation.replace("Home");
+      } else {
+        navigation.replace("RoleSelection");
+      }
+    }, 1200);
 
     return () => {
       animation.stop();
       clearTimeout(timeout);
     };
-  }, [navigation, pulse]);
+  }, [navigation, pulse, role, initializing]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
