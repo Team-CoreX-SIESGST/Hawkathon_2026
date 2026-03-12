@@ -5,6 +5,12 @@ const generateToken = (id, role) => {
     return signToken({ id, role }, { expiresIn: '30d' });
 };
 
+const normalizePhone = (value) => {
+    const digits = String(value || '').replace(/\D/g, '');
+    if (!digits) return '';
+    return digits.length > 10 ? digits.slice(-10) : digits;
+};
+
 const parseLocation = (locationCoordinates) => {
     if (!locationCoordinates) return null;
     const { latitude, longitude } = locationCoordinates;
@@ -30,7 +36,7 @@ const haversineKm = (a, b) => {
 // @access  Public
 export const registerDoctor = async (req, res) => {
     try {
-        const { name, username, password, hospitalName, locationCoordinates } = req.body;
+        const { name, username, password, hospitalName, locationCoordinates, phoneNumber } = req.body;
         const parsedLocation = parseLocation(locationCoordinates);
 
         if (!name || !username || !password || !hospitalName || !parsedLocation) {
@@ -46,6 +52,7 @@ export const registerDoctor = async (req, res) => {
             name,
             username,
             password,
+            phoneNumber: normalizePhone(phoneNumber) || undefined,
             hospitalName,
             locationCoordinates: parsedLocation
         });
@@ -54,6 +61,7 @@ export const registerDoctor = async (req, res) => {
             _id: doctor._id,
             name: doctor.name,
             username: doctor.username,
+            phoneNumber: doctor.phoneNumber,
             hospitalName: doctor.hospitalName,
             locationCoordinates: doctor.locationCoordinates,
             token: generateToken(doctor._id, 'doctor')
@@ -76,13 +84,14 @@ export const loginDoctor = async (req, res) => {
         const doctor = await DoctorAccount.findOne({ username: username.toLowerCase() });
         if (doctor && (await doctor.matchPassword(password))) {
             return res.json({
-                _id: doctor._id,
-                name: doctor.name,
-                username: doctor.username,
-                hospitalName: doctor.hospitalName,
-                locationCoordinates: doctor.locationCoordinates,
-                token: generateToken(doctor._id, 'doctor')
-            });
+            _id: doctor._id,
+            name: doctor.name,
+            username: doctor.username,
+            phoneNumber: doctor.phoneNumber,
+            hospitalName: doctor.hospitalName,
+            locationCoordinates: doctor.locationCoordinates,
+            token: generateToken(doctor._id, 'doctor')
+        });
         }
 
         res.status(401).json({ message: 'Invalid username or password' });

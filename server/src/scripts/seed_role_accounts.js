@@ -69,6 +69,8 @@ const doctorProfiles = [
     { name: 'Dr. Rahul Verma', username: 'dr.rahul', hospitalName: 'Sirhind SDH' }
 ];
 
+const doctorPhoneBase = 9876500000;
+
 const ashaProfiles = [
     { name: 'Sunita Devi', username: 'asha.sunita' },
     { name: 'Meera Kumari', username: 'asha.meera' },
@@ -176,6 +178,7 @@ const seedAccounts = async () => {
         const doctor = {
             ...doctorProfile,
             password: 'Doctor@123',
+            phoneNumber: String(doctorPhoneBase + index + 1),
             locationCoordinates,
             availableSlots: defaultSlots
         };
@@ -187,6 +190,7 @@ const seedAccounts = async () => {
                     $set: {
                         name: doctor.name,
                         hospitalName: doctor.hospitalName,
+                        phoneNumber: doctor.phoneNumber,
                         locationCoordinates: doctor.locationCoordinates,
                         availableSlots: doctor.availableSlots
                     },
