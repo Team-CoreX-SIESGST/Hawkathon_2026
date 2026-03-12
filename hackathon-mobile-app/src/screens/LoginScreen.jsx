@@ -10,7 +10,7 @@ import {
   ScrollView,
 } from "react-native";
 
-export default function LoginScreen() {
+export default function LoginScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView
@@ -50,8 +50,18 @@ export default function LoginScreen() {
             />
           </View>
 
-          <Pressable style={styles.primaryButton}>
-            <Text style={styles.primaryButtonText}>Login with OTP</Text>
+          <Pressable
+            style={styles.primaryButton}
+            onPress={() => navigation.navigate("PatientDashboardMock")}
+          >
+            <Text style={styles.primaryButtonText}>Login as Patient</Text>
+          </Pressable>
+
+          <Pressable
+            style={[styles.primaryButton, styles.secondaryButton]}
+            onPress={() => navigation.navigate("ConsultantDashboardMock")}
+          >
+            <Text style={styles.primaryButtonText}>Login as Doctor</Text>
           </Pressable>
 
           <Text style={styles.termsText}>
@@ -177,6 +187,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 16,
     elevation: 4,
+  },
+  secondaryButton: {
+    backgroundColor: "#1F2937",
+    marginTop: 14,
   },
   primaryButtonText: {
     color: "#FFFFFF",

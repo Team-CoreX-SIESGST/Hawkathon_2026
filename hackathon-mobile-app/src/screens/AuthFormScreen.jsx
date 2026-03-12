@@ -119,7 +119,15 @@ export default function AuthFormScreen({ navigation, route }) {
 
       const { token, ...profile } = response || {};
       signIn({ user: profile, token, role });
-      navigation.reset({ index: 0, routes: [{ name: "Home" }] });
+      
+      let nextScreen = "Home";
+      if (role === "patient") {
+        nextScreen = "PatientDashboardMock";
+      } else if (role === "doctor") {
+        nextScreen = "ConsultantDashboardMock";
+      }
+      
+      navigation.reset({ index: 0, routes: [{ name: nextScreen }] });
     } catch (err) {
       setError(err.message || "Something went wrong");
     } finally {

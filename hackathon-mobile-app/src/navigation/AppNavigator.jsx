@@ -9,6 +9,8 @@ import SplashScreen from "../screens/SplashScreen";
 import RoleSelectionScreen from "../screens/RoleSelectionScreen";
 import AuthChoiceScreen from "../screens/AuthChoiceScreen";
 import AuthFormScreen from "../screens/AuthFormScreen";
+import PatientDashboardMock from "../screens/PatientDashboardMock";
+import ConsultantDashboardMock from "../screens/ConsultantDashboardMock";
 
 const Stack = createNativeStackNavigator();
 
@@ -40,6 +42,16 @@ export default function AppNavigator() {
         <Stack.Screen name="Chat" component={ChatScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
+        <Stack.Screen
+          name="PatientDashboardMock"
+          component={PatientDashboardMock}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="ConsultantDashboardMock"
+          component={ConsultantDashboardMock}
+          options={{ headerShown: false }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );
