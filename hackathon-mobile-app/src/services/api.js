@@ -1,8 +1,11 @@
-const API_BASE_URL = (process.env.EXPO_PUBLIC_API_BASE_URL || "http://10.0.28.57:5001").replace(
+const API_BASE_URL = (process.env.EXPO_PUBLIC_API_BASE_URL || "http://10.0.16.63:5001").replace(
   /\/+$/,
   ""
 );
-
+const API_BASE_URL1 = (process.env.EXPO_PUBLIC_API_BASE_URL || "http://10.0.16.63:5002").replace(
+  /\/+$/,
+  ""
+);
 async function request(endpoint, method = "GET", body, token) {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     method,
@@ -123,7 +126,7 @@ export async function sendChatMessage({ token, prompt, conversationId }) {
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_BASE_URL}/api/chat`, {
+  const response = await fetch(`${API_BASE_URL1}/api/chat`, {
     method: "POST",
     headers,
     body: JSON.stringify({
@@ -183,7 +186,7 @@ export function streamChatMessage({
     onComplete?.();
   }
 
-  xhr.open("POST", `${API_BASE_URL}/api/chat/stream`, true);
+  xhr.open("POST", `${API_BASE_URL1}/api/chat/stream`, true);
   xhr.setRequestHeader("Content-Type", "application/json");
   xhr.setRequestHeader("Accept", "text/event-stream");
   if (token) {
@@ -240,7 +243,7 @@ export function streamChatMessage({
 
 export const patientRegister = (payload) =>
   request("/patient/register", "POST", payload);
-export const patientLogin = (payload) =>{
+export const patientLogin = (payload) => {
   console.log('fwoeihfoi')
   request("/patient/login", "POST", payload);
 }

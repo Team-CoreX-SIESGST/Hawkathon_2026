@@ -15,6 +15,14 @@ import {
 } from "react-native";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { streamChatMessage } from "../services/api";
+import { Feather } from "@expo/vector-icons";
+
+const quickSymptoms = [
+  { id: 1, label: "Fever", icon: "🌡️" },
+  { id: 2, label: "Headache", icon: "💆" },
+  { id: 3, label: "Cough", icon: "💨" },
+  { id: 4, label: "Stomach Pain", icon: "🤢" },
+];
 
 function dedupeByUrl(items, keyName = "url") {
   const seen = new Set();
@@ -311,12 +319,20 @@ function MessageBubble({ message, onOpenUrl }) {
   const hasText = parsedText.text.trim().length > 0;
 
   return (
-    <View style={[styles.messageBubble, isUser ? styles.userBubble : styles.assistantBubble]}>
-      {hasText ? (
-        <MarkdownMessage text={parsedText.text} isUser={isUser} onOpenUrl={onOpenUrl} />
-      ) : null}
+    <View style={[styles.messageRow, isUser ? styles.userMessageRow : styles.assistantMessageRow]}>
+      {!isUser && (
+        <View style={styles.avatarWrap}>
+          <Text style={styles.avatarText}>AG</Text>
+        </View>
+      )}
+      <View style={[styles.messageContent, isUser ? styles.userMessageContent : styles.assistantMessageContent]}>
+        {!isUser && <Text style={styles.assistantName}>ArogyaGram Assistant</Text>}
+        <View style={[styles.messageBubble, isUser ? styles.userBubble : styles.assistantBubble]}>
+          {hasText ? (
+            <MarkdownMessage text={parsedText.text} isUser={isUser} onOpenUrl={onOpenUrl} />
+          ) : null}
 
-      {!isUser && images.length > 0 ? (
+          {!isUser && images.length > 0 ? (
         <View style={styles.sectionBlock}>
           <Text style={styles.sectionTitle}>Images</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.imageRow}>
@@ -381,11 +397,14 @@ function MessageBubble({ message, onOpenUrl }) {
           ))}
         </View>
       ) : null}
+        </View>
+        {!isUser && <Text style={styles.messageTime}>Just now</Text>}
+      </View>
     </View>
   );
 }
 
-export default function ChatScreen({ route }) {
+export default function ChatScreen({ route, navigation }) {
   const headerHeight = useHeaderHeight();
   const listRef = React.useRef(null);
   const abortStreamRef = React.useRef(null);
@@ -549,14 +568,18 @@ export default function ChatScreen({ route }) {
       keyboardVerticalOffset={Platform.OS === "ios" ? headerHeight : 20}
     >
       <View style={styles.header}>
+        <Pressable onPress={() => navigation?.goBack()} style={styles.backButton}>
+          <Feather name="chevron-left" size={28} color="#4B5563" />
+        </Pressable>
         <View style={styles.headerTextWrap}>
-          <Text style={styles.title}>MediSetu Chatbot</Text>
-          <Text style={styles.subtitle} numberOfLines={1}>
-            {conversationId ? `Conversation: ${conversationId}` : "Start a new conversation"}
-          </Text>
+          <Text style={styles.title}>ArogyaGram AI</Text>
+          <View style={styles.onlineStatus}>
+            <View style={styles.onlineDot} />
+            <Text style={styles.subtitle}>Online</Text>
+          </View>
         </View>
-        <Pressable style={styles.newButton} onPress={handleNewChat}>
-          <Text style={styles.newButtonText}>New</Text>
+        <Pressable style={styles.headerAvatar} onPress={handleNewChat}>
+          <Feather name="user" size={20} color="#5DC1B9" />
         </Pressable>
       </View>
 
@@ -568,7 +591,32 @@ export default function ChatScreen({ route }) {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
         renderItem={({ item }) => <MessageBubble message={item} onOpenUrl={handleOpenUrl} />}
-        ListEmptyComponent={<Text style={styles.emptyText}>Say hi to MediSetu.</Text>}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyTitle}>TAP A SYMPTOM TO BEGIN</Text>
+            <View style={styles.symptomsGrid}>
+              {quickSymptoms.map((symptom) => (
+                <Pressable
+                  key={symptom.id}
+                  style={styles.symptomCard}
+                  onPress={() => {
+                    setPrompt(symptom.label);
+                  }}
+                >
+                  <Text style={styles.symptomIcon}>{symptom.icon}</Text>
+                  <Text style={styles.symptomLabel}>{symptom.label}</Text>
+                </Pressable>
+              ))}
+            </View>
+            <Pressable
+              style={[styles.symptomCard, styles.symptomCardFull]}
+              onPress={() => setPrompt("Fatigue (Tiredness)")}
+            >
+              <Text style={styles.symptomIcon}>😴</Text>
+              <Text style={styles.symptomLabel}>Fatigue (Tiredness)</Text>
+            </Pressable>
+          </View>
+        }
       />
 
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
@@ -589,24 +637,24 @@ export default function ChatScreen({ route }) {
           </View>
         ) : null}
 
-        <TextInput
-          style={styles.input}
-          value={prompt}
-          onChangeText={setPrompt}
-          placeholder="Type your message..."
-          multiline
-          maxLength={4000}
-        />
-        <Pressable style={styles.toolsButton} onPress={() => setToolsOpen((prev) => !prev)}>
-          <Text style={styles.toolsButtonText}>Tools</Text>
-        </Pressable>
-        <Pressable
-          style={[styles.sendButton, loading && styles.disabledButton]}
-          onPress={handleSend}
-          disabled={loading}
-        >
-          <Text style={styles.sendText}>{loading ? "..." : "Send"}</Text>
-        </Pressable>
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.input}
+            value={prompt}
+            onChangeText={setPrompt}
+            placeholder="Type other symptoms..."
+            placeholderTextColor="#9ca3af"
+            multiline
+            maxLength={4000}
+          />
+          <Pressable
+            style={[styles.sendButton, (loading || !prompt.trim()) && styles.disabledButton]}
+            onPress={handleSend}
+            disabled={loading || !prompt.trim()}
+          >
+            <Feather name="send" size={18} color="#ffffff" style={styles.sendIcon} />
+          </Pressable>
+        </View>
       </View>
     </KeyboardAvoidingView>
   );
@@ -622,60 +670,163 @@ const styles = StyleSheet.create({
     paddingTop: 14,
     paddingBottom: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
+    borderBottomColor: "#f3f4f6",
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+  },
+  backButton: {
+    paddingRight: 12,
   },
   headerTextWrap: {
     flex: 1,
-    paddingRight: 10,
   },
   title: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "700",
     color: "#111827",
   },
-  subtitle: {
-    fontSize: 12,
-    color: "#6b7280",
+  onlineStatus: {
+    flexDirection: "row",
+    alignItems: "center",
     marginTop: 2,
   },
-  newButton: {
-    borderWidth: 1,
-    borderColor: "#d1d5db",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+  onlineDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#22c55e",
+    marginRight: 4,
   },
-  newButtonText: {
-    color: "#111827",
-    fontWeight: "600",
+  subtitle: {
+    fontSize: 12,
+    color: "#22c55e",
+  },
+  headerAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#ccfbf1",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#a7f3d0",
   },
   messagesContent: {
-    padding: 12,
-    paddingBottom: 20,
+    padding: 16,
+    paddingBottom: 30,
   },
-  emptyText: {
-    textAlign: "center",
+  emptyContainer: {
+    marginTop: 40,
+    alignItems: "center",
+    paddingHorizontal: 16,
+  },
+  emptyTitle: {
+    fontSize: 12,
+    fontWeight: "700",
     color: "#6b7280",
-    marginTop: 22,
+    letterSpacing: 1,
+    marginBottom: 16,
+  },
+  symptomsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    width: "100%",
+  },
+  symptomCard: {
+    width: "48%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#ffffff",
+    borderWidth: 1,
+    borderColor: "#ccfbf1",
+    borderRadius: 12,
+    paddingVertical: 16,
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  symptomCardFull: {
+    width: "100%",
+  },
+  symptomIcon: {
+    fontSize: 18,
+    marginRight: 8,
+  },
+  symptomLabel: {
+    fontSize: 15,
+    color: "#374151",
+    fontWeight: "500",
+  },
+  messageRow: {
+    flexDirection: "row",
+    marginBottom: 20,
+    alignItems: "flex-start",
+  },
+  userMessageRow: {
+    justifyContent: "flex-end",
+  },
+  assistantMessageRow: {
+    justifyContent: "flex-start",
+  },
+  avatarWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#5DC1B9",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 10,
+  },
+  avatarText: {
+    color: "#ffffff",
+    fontWeight: "700",
+    fontSize: 14,
+  },
+  messageContent: {
+    flex: 1,
+  },
+  userMessageContent: {
+    alignItems: "flex-end",
+  },
+  assistantMessageContent: {
+    alignItems: "flex-start",
+  },
+  assistantName: {
+    fontSize: 13,
+    color: "#6b7280",
+    marginBottom: 4,
+    marginLeft: 2,
   },
   messageBubble: {
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 8,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
   },
   userBubble: {
-    alignSelf: "flex-end",
-    maxWidth: "85%",
     backgroundColor: "#1d4ed8",
+    borderBottomRightRadius: 4,
   },
   assistantBubble: {
-    alignSelf: "flex-start",
-    width: "94%",
-    backgroundColor: "#f3f4f6",
+    backgroundColor: "#ffffff",
+    borderTopLeftRadius: 4,
+    borderWidth: 1,
+    borderColor: "#f3f4f6",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  messageTime: {
+    fontSize: 11,
+    color: "#9ca3af",
+    marginTop: 6,
+    marginLeft: 2,
   },
   messageText: {
     fontSize: 15,
@@ -842,13 +993,17 @@ const styles = StyleSheet.create({
     paddingBottom: 6,
   },
   composerRow: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    borderTopWidth: 1,
-    borderTopColor: "#e5e7eb",
-    padding: 10,
+    padding: 16,
     backgroundColor: "#ffffff",
     position: "relative",
+  },
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f3f4f6",
+    borderRadius: 24,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
   },
   toolsBackdrop: {
     ...StyleSheet.absoluteFillObject,
@@ -886,38 +1041,24 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: "#d1d5db",
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    minHeight: 44,
-    maxHeight: 120,
-    marginRight: 10,
-    backgroundColor: "#ffffff",
-  },
-  toolsButton: {
-    borderWidth: 1,
-    borderColor: "#d1d5db",
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    marginRight: 8,
-    backgroundColor: "#ffffff",
-  },
-  toolsButtonText: {
-    color: "#111827",
-    fontWeight: "600",
-  },
-  sendButton: {
-    backgroundColor: "#111827",
-    borderRadius: 10,
     paddingHorizontal: 16,
     paddingVertical: 12,
+    minHeight: 44,
+    maxHeight: 120,
+    color: "#1f2937",
+    fontSize: 16,
   },
-  sendText: {
-    color: "#ffffff",
-    fontWeight: "700",
+  sendButton: {
+    backgroundColor: "#5DC1B9",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 4,
+  },
+  sendIcon: {
+    marginLeft: -2,
   },
   disabledButton: {
     opacity: 0.6,
