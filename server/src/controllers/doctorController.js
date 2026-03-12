@@ -14,6 +14,19 @@ const parseLocation = (locationCoordinates) => {
     return { latitude, longitude };
 };
 
+const toRad = (value) => (value * Math.PI) / 180;
+const haversineKm = (a, b) => {
+    const R = 6371;
+    const dLat = toRad(b.latitude - a.latitude);
+    const dLon = toRad(b.longitude - a.longitude);
+    const lat1 = toRad(a.latitude);
+    const lat2 = toRad(b.latitude);
+    const h =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(h));
+};
+
 // @desc    Register doctor
 // @route   POST /api/doctor/register
 // @access  Public
@@ -124,4 +137,47 @@ export const getDoctorMe = async (req, res) => {
         hospitalName: req.user.hospitalName,
         locationCoordinates: req.user.locationCoordinates
     });
+};
+
+// @desc    Get doctors near a coordinate
+// @route   GET /api/doctor/nearby?latitude=..&longitude=..&radiusKm=..
+// @access  Public
+export const getDoctorsNearby = async (req, res) => {
+    try {
+        const latitude = Number(req.query.latitude);
+        const longitude = Number(req.query.longitude);
+        const radiusKm = req.query.radiusKm ? Number(req.query.radiusKm) : 10;
+
+        if (Number.isNaN(latitude) || Number.isNaN(longitude)) {
+            return res.status(400).json({ message: 'latitude and longitude are required' });
+        }
+
+        const origin = { latitude, longitude };
+        const doctors = await DoctorAccount.find({
+            'locationCoordinates.latitude': { $ne: null },
+            'locationCoordinates.longitude': { $ne: null }
+        }).select('-password');
+
+        const nearby = doctors
+            .map((doctor) => {
+                const coords = doctor.locationCoordinates;
+                if (!coords) return null;
+                const distanceKm = haversineKm(origin, coords);
+                return { doctor, distanceKm };
+            })
+            .filter((item) => item && item.distanceKm <= radiusKm)
+            .sort((a, b) => a.distanceKm - b.distanceKm)
+            .map((item) => ({
+                _id: item.doctor._id,
+                name: item.doctor.name,
+                username: item.doctor.username,
+                hospitalName: item.doctor.hospitalName,
+                locationCoordinates: item.doctor.locationCoordinates,
+                distanceKm: Number(item.distanceKm.toFixed(2))
+            }));
+
+        res.json({ count: nearby.length, results: nearby });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
 };

@@ -1,6 +1,8 @@
-import React from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
+import { AuthContext } from "../context/AuthContext";
+import { doctorNearby } from "../services/api";
 import {
   StyleSheet,
   Text,
@@ -17,21 +19,6 @@ const quickActions = [
   { title: "Health Records", icon: "HR" },
   { title: "Find Medicine", icon: "FM" },
   { title: "Call with Ai", icon: "AI" },
-];
-
-const doctors = [
-  {
-    name: "Dr. Sarah Miller",
-    specialty: "Cardiologist",
-    rating: "4.8 (120+)",
-    avatar: require("../../assets/female-icon.png"),
-  },
-  {
-    name: "Dr. John Doe",
-    specialty: "Pediatrician",
-    rating: "4.9 (90+)",
-    avatar: require("../../assets/male-doctor-icon.png"),
-  },
 ];
 
 const pharmacies = [
@@ -51,6 +38,25 @@ const pharmacies = [
 
 export default function PatientDashboardMock() {
   const navigation = useNavigation();
+  const { user } = useContext(AuthContext);
+  const [doctors, setDoctors] = useState([]);
+
+  useEffect(() => {
+    const load = async () => {
+      if (!user?.locationCoordinates) return;
+      try {
+        const data = await doctorNearby(
+          user.locationCoordinates.latitude,
+          user.locationCoordinates.longitude,
+          10
+        );
+        setDoctors(data.results || []);
+      } catch (error) {
+        setDoctors([]);
+      }
+    };
+    load();
+  }, [user]);
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
@@ -107,7 +113,7 @@ export default function PatientDashboardMock() {
         <View style={styles.doctorRow}>
           {doctors.map((doctor) => (
             <TouchableOpacity
-              key={doctor.name}
+              key={doctor._id}
               style={styles.doctorCard}
               activeOpacity={0.8}
               onPress={() =>
@@ -115,11 +121,18 @@ export default function PatientDashboardMock() {
               }
             >
               <View style={styles.doctorAvatarWrap}>
-                <Image source={doctor.avatar} style={styles.doctorAvatar} />
+                <Image
+                  source={require("../../assets/male-doctor-icon.png")}
+                  style={styles.doctorAvatar}
+                />
               </View>
               <Text style={styles.doctorName}>{doctor.name}</Text>
-              <Text style={styles.doctorMeta}>{doctor.specialty}</Text>
-              <Text style={styles.doctorRating}>* {doctor.rating}</Text>
+              <Text style={styles.doctorMeta}>
+                {doctor.hospitalName || "Nearby Doctor"}
+              </Text>
+              <Text style={styles.doctorRating}>
+                {doctor.distanceKm} km away
+              </Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -171,7 +184,9 @@ export default function PatientDashboardMock() {
               style={styles.navItem}
               activeOpacity={0.7}
               onPress={() =>
-                Alert.alert("Navigation", `${label} tab tapped`)
+                label === "Consult"
+                  ? navigation.navigate("PatientConsult")
+                  : Alert.alert("Navigation", `${label} tab tapped`)
               }
             >
               <View

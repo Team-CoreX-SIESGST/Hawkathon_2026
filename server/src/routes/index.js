@@ -3,6 +3,7 @@ import authRoutes from './authRoutes.js';
 import patientRoutes from './patientRoutes.js';
 import doctorRoutes from './doctorRoutes.js';
 import ashaRoutes from './ashaRoutes.js';
+import appointmentRoutes from './appointmentRoutes.js';
 
 const router = express.Router();
 
@@ -16,6 +17,7 @@ router.use('/auth', authRoutes);
 router.use('/patient', patientRoutes);
 router.use('/doctor', doctorRoutes);
 router.use('/asha', ashaRoutes);
+router.use('/appointments', appointmentRoutes);
 
 // Add your resource routes here
 // import userRoutes from './userRoutes.js';

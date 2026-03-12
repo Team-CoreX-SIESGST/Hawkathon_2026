@@ -256,6 +256,10 @@ export const doctorLogin = (payload) =>
 export const doctorUpdate = (token, payload) =>
   request("/doctor/update", "PUT", payload, token);
 export const doctorMe = (token) => request("/doctor/me", "GET", null, token);
+export const doctorNearby = (latitude, longitude, radiusKm = 10) =>
+  request(
+    `/doctor/nearby?latitude=${latitude}&longitude=${longitude}&radiusKm=${radiusKm}`
+  );
 
 export const ashaRegister = (payload) =>
   request("/asha/register", "POST", payload);
@@ -264,6 +268,13 @@ export const ashaLogin = (payload) =>
 export const ashaUpdate = (token, payload) =>
   request("/asha/update", "PUT", payload, token);
 export const ashaMe = (token) => request("/asha/me", "GET", null, token);
+
+export const createAppointment = (token, payload) =>
+  request("/appointments", "POST", payload, token);
+export const getMyAppointments = (token) =>
+  request("/appointments/my", "GET", null, token);
+export const cancelAppointment = (token, id) =>
+  request(`/appointments/${id}/cancel`, "PATCH", null, token);
 
 
 export async function getHealth() {

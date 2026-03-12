@@ -78,10 +78,15 @@ export const loginPatient = async (req, res) => {
             return res.status(400).json({ message: 'ABHA ID is required' });
         }
 
-        const patient = await PatientAccount.findOne({ abhaId });
+        const patient = await Patient.findOne({
+          "abha_profile.healthIdNumber": abhaId,
+        });
+
         if (!patient) {
             return res.status(401).json({ message: 'Invalid ABHA ID' });
         }
+
+        console.log(patient,"fewoifhoi")
 
         res.json({
             _id: patient._id,
