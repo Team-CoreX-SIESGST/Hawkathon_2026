@@ -130,7 +130,11 @@ const patientSchema = new mongoose.Schema(
         health_records: { type: healthRecordsSchema },
         consultations: [consultationSchema],
         insurance: { type: insuranceSchema },
-        ashaWorker: { type: ashaWorkerSchema }
+        ashaWorker: { type: ashaWorkerSchema },
+        locationCoordinates: {
+            latitude: { type: Number },
+            longitude: { type: Number }
+        }
     },
     {
         timestamps: true
