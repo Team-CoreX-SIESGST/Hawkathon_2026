@@ -7,7 +7,7 @@ const API_BASE_URL1 = (process.env.EXPO_PUBLIC_API_BASE_URL_1 || "http://10.0.16
   ""
 );
 async function request(endpoint, method = "GET", body, token) {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  const response = await fetch(`${API_BASE_URL}/api${endpoint}`, {
     method,
     headers: {
       "Content-Type": "application/json",
