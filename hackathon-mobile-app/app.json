@@ -24,6 +24,9 @@
       "permissions": [
         "CAMERA",
         "READ_MEDIA_IMAGES",
+        "READ_EXTERNAL_STORAGE",
+        "CAMERA",
+        "READ_MEDIA_IMAGES",
         "READ_EXTERNAL_STORAGE"
       ],
       "adaptiveIcon": {
@@ -31,7 +34,8 @@
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
-      }
+      },
+      "package": "com.umairmomin.hackathonmobileapp"
     },
     "web": {
       "favicon": "./assets/favicon.png"
