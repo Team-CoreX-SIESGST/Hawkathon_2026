@@ -3,8 +3,9 @@ import mongoose from 'mongoose';
 const otpRequestSchema = new mongoose.Schema(
     {
         phoneNumber: { type: String, required: true, index: true },
+        role: { type: String, required: true, index: true },
         otpHash: { type: String, required: true },
-        expiresAt: { type: Date, required: true, index: { expires: 0 } },
+        expiresAt: { type: Date, required: true, index: true, expires: 0 },
         attempts: { type: Number, default: 0 },
         verifiedAt: { type: Date, default: null }
     },

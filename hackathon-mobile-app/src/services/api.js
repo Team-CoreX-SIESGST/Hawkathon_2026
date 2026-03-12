@@ -277,6 +277,10 @@ export const doctorRegister = (payload) =>
   request("/doctor/register", "POST", payload);
 export const doctorLogin = (payload) =>
   request("/doctor/login", "POST", payload);
+export const sendDoctorOtp = (payload) =>
+  request("/doctor/otp/send", "POST", payload);
+export const verifyDoctorOtp = (payload) =>
+  request("/doctor/otp/verify", "POST", payload);
 export const doctorUpdate = (token, payload) =>
   request("/doctor/update", "PUT", payload, token);
 export const doctorMe = (token) => request("/doctor/me", "GET", null, token);

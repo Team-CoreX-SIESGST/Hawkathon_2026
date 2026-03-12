@@ -6,6 +6,7 @@ import {
     getDoctorMe,
     getDoctorsNearby
 } from '../controllers/doctorController.js';
+import { sendDoctorOtp, verifyDoctorOtp } from '../controllers/otpController.js';
 import {
     getDoctorAppointments,
     updateDoctorAppointmentStatus,
@@ -19,6 +20,8 @@ const router = express.Router();
 
 router.post('/register', registerDoctor);
 router.post('/login', loginDoctor);
+router.post('/otp/send', sendDoctorOtp);
+router.post('/otp/verify', verifyDoctorOtp);
 router.put('/update', protectDoctor, updateDoctor);
 router.get('/me', protectDoctor, getDoctorMe);
 router.get('/nearby', getDoctorsNearby);

@@ -15,6 +15,9 @@ import {
   patientLogin,
   sendPatientOtp,
   verifyPatientOtp,
+  doctorLogin,
+  sendDoctorOtp,
+  verifyDoctorOtp,
 } from "../services/api";
 import { AuthContext } from "../context/AuthContext";
 
@@ -28,7 +31,7 @@ export default function AuthChoiceScreen({ navigation, route }) {
   const role = route?.params?.role || "patient";
   const roleLabel = useMemo(() => ROLE_LABELS[role] || "User", [role]);
 
-  const [authMethod, setAuthMethod] = useState("abha");
+  const [patientMethod, setPatientMethod] = useState("abha");
   const [abhaMode, setAbhaMode] = useState("id");
   const [abhaId, setAbhaId] = useState("");
   const [abhaImage, setAbhaImage] = useState(null);
@@ -39,6 +42,15 @@ export default function AuthChoiceScreen({ navigation, route }) {
   const [abhaLoading, setAbhaLoading] = useState(false);
   const [otpSending, setOtpSending] = useState(false);
   const [otpVerifying, setOtpVerifying] = useState(false);
+  const [doctorMethod, setDoctorMethod] = useState("username");
+  const [doctorUsername, setDoctorUsername] = useState("");
+  const [doctorPassword, setDoctorPassword] = useState("");
+  const [doctorPhoneNumber, setDoctorPhoneNumber] = useState("");
+  const [doctorOtp, setDoctorOtp] = useState("");
+  const [doctorOtpSent, setDoctorOtpSent] = useState(false);
+  const [doctorLoginLoading, setDoctorLoginLoading] = useState(false);
+  const [doctorOtpSending, setDoctorOtpSending] = useState(false);
+  const [doctorOtpVerifying, setDoctorOtpVerifying] = useState(false);
   const { signIn } = useContext(AuthContext);
 
   const handleGalleryPick = async () => {
@@ -168,6 +180,247 @@ export default function AuthChoiceScreen({ navigation, route }) {
     }
   };
 
+  const handleDoctorLogin = async () => {
+    setStatus("");
+    if (!doctorUsername.trim() || !doctorPassword) {
+      setStatus("Enter username and password to continue.");
+      return;
+    }
+    setDoctorLoginLoading(true);
+    try {
+      const response = await doctorLogin({
+        username: doctorUsername.trim(),
+        password: doctorPassword,
+      });
+      const { token, ...profile } = response || {};
+      signIn({ user: profile, token, role: "doctor" });
+      navigation.reset({ index: 0, routes: [{ name: "DoctorProfile" }] });
+    } catch (error) {
+      setStatus(error.message || "Unable to login.");
+    } finally {
+      setDoctorLoginLoading(false);
+    }
+  };
+
+  const handleDoctorSendOtp = async () => {
+    setStatus("");
+    if (doctorPhoneNumber.trim().length < 10) {
+      setStatus("Enter a valid 10-digit mobile number.");
+      return;
+    }
+    setDoctorOtpSending(true);
+    try {
+      await sendDoctorOtp({ phoneNumber: doctorPhoneNumber });
+      setDoctorOtpSent(true);
+      setStatus("OTP sent to your mobile number.");
+    } catch (error) {
+      setStatus(error.message || "Unable to send OTP.");
+    } finally {
+      setDoctorOtpSending(false);
+    }
+  };
+
+  const handleDoctorVerifyOtp = async () => {
+    setStatus("");
+    if (doctorOtp.trim().length < 4) {
+      setStatus("Enter the OTP to continue.");
+      return;
+    }
+    setDoctorOtpVerifying(true);
+    try {
+      const response = await verifyDoctorOtp({
+        phoneNumber: doctorPhoneNumber,
+        otp: doctorOtp,
+      });
+      const { token, ...profile } = response || {};
+      signIn({ user: profile, token, role: "doctor" });
+      navigation.reset({ index: 0, routes: [{ name: "DoctorProfile" }] });
+    } catch (error) {
+      setStatus(error.message || "Unable to verify OTP.");
+    } finally {
+      setDoctorOtpVerifying(false);
+    }
+  };
+
+  if (role === "doctor") {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <ScrollView
+          contentContainerStyle={styles.container}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Text style={styles.title}>Doctor Login</Text>
+          <Text style={styles.subtitle}>
+            Choose how you want to sign in.
+          </Text>
+
+          <View style={styles.tabRow}>
+            <Pressable
+              style={[
+                styles.tabButton,
+                doctorMethod === "username" && styles.tabActive,
+              ]}
+              onPress={() => {
+                setDoctorMethod("username");
+                setStatus("");
+              }}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  doctorMethod === "username" && styles.tabTextActive,
+                ]}
+              >
+                Login with Username
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[
+                styles.tabButton,
+                doctorMethod === "mobile" && styles.tabActive,
+              ]}
+              onPress={() => {
+                setDoctorMethod("mobile");
+                setStatus("");
+              }}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  doctorMethod === "mobile" && styles.tabTextActive,
+                ]}
+              >
+                Login with Mobile
+              </Text>
+            </Pressable>
+          </View>
+
+          {doctorMethod === "username" ? (
+            <View style={styles.sectionCard}>
+              <Text style={styles.sectionTitle}>Username Login</Text>
+              <Text style={styles.sectionSubtitle}>
+                Enter your doctor username and password.
+              </Text>
+
+              <View style={styles.field}>
+                <Text style={styles.label}>Username</Text>
+                <TextInput
+                  style={styles.input}
+                  onChangeText={setDoctorUsername}
+                  placeholder="doctor.username"
+                  placeholderTextColor="#9CA3AF"
+                  autoCapitalize="none"
+                />
+              </View>
+              <View style={styles.field}>
+                <Text style={styles.label}>Password</Text>
+                <TextInput
+                  style={styles.input}
+                  onChangeText={setDoctorPassword}
+                  placeholder="Enter your password"
+                  placeholderTextColor="#9CA3AF"
+                  secureTextEntry
+                />
+              </View>
+
+              <Pressable
+                style={[
+                  styles.primaryButton,
+                  doctorLoginLoading && styles.buttonDisabled,
+                ]}
+                onPress={handleDoctorLogin}
+                disabled={doctorLoginLoading}
+              >
+                <Text style={styles.primaryButtonText}>
+                  {doctorLoginLoading ? "Signing in..." : "Login"}
+                </Text>
+              </Pressable>
+            </View>
+          ) : (
+            <View style={styles.sectionCard}>
+              <Text style={styles.sectionTitle}>Mobile OTP</Text>
+              <Text style={styles.sectionSubtitle}>
+                Enter your mobile number to receive an OTP.
+              </Text>
+
+              <View style={styles.field}>
+                <Text style={styles.label}>Mobile Number</Text>
+                <TextInput
+                  style={styles.input}
+                  value={doctorPhoneNumber}
+                  onChangeText={(value) => {
+                    setDoctorPhoneNumber(value.replace(/[^0-9]/g, ""));
+                    setDoctorOtpSent(false);
+                    setDoctorOtp("");
+                  }}
+                  placeholder="00000 00000"
+                  placeholderTextColor="#9CA3AF"
+                  keyboardType="number-pad"
+                  maxLength={10}
+                />
+              </View>
+
+              {!doctorOtpSent ? (
+                <Pressable
+                  style={[
+                    styles.primaryButton,
+                    doctorOtpSending && styles.buttonDisabled,
+                  ]}
+                  onPress={handleDoctorSendOtp}
+                  disabled={doctorOtpSending}
+                >
+                  <Text style={styles.primaryButtonText}>
+                    {doctorOtpSending ? "Sending..." : "Send OTP"}
+                  </Text>
+                </Pressable>
+              ) : (
+                <>
+                  <View style={styles.field}>
+                    <Text style={styles.label}>Enter OTP</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={doctorOtp}
+                      onChangeText={(value) =>
+                        setDoctorOtp(value.replace(/[^0-9]/g, ""))
+                      }
+                      placeholder="123456"
+                      placeholderTextColor="#9CA3AF"
+                      keyboardType="number-pad"
+                      maxLength={6}
+                    />
+                  </View>
+                  <Pressable
+                    style={[
+                      styles.primaryButton,
+                      doctorOtpVerifying && styles.buttonDisabled,
+                    ]}
+                    onPress={handleDoctorVerifyOtp}
+                    disabled={doctorOtpVerifying}
+                  >
+                    <Text style={styles.primaryButtonText}>
+                      {doctorOtpVerifying ? "Verifying..." : "Verify OTP"}
+                    </Text>
+                  </Pressable>
+                </>
+              )}
+            </View>
+          )}
+
+          {status ? <Text style={styles.statusText}>{status}</Text> : null}
+
+          <View style={styles.footerRow}>
+            <Text style={styles.footerText}>New doctor?</Text>
+            <Pressable
+              onPress={() => navigation.navigate("AuthForm", { role, mode: "register" })}
+            >
+              <Text style={styles.footerLink}>Register here</Text>
+            </Pressable>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
   if (role !== "patient") {
     return (
       <SafeAreaView style={styles.safeArea}>
@@ -220,32 +473,32 @@ export default function AuthChoiceScreen({ navigation, route }) {
 
         <View style={styles.tabRow}>
           <Pressable
-            style={[styles.tabButton, authMethod === "abha" && styles.tabActive]}
+            style={[styles.tabButton, patientMethod === "abha" && styles.tabActive]}
             onPress={() => {
-              setAuthMethod("abha");
+              setPatientMethod("abha");
               setStatus("");
             }}
           >
             <Text
               style={[
                 styles.tabText,
-                authMethod === "abha" && styles.tabTextActive,
+                patientMethod === "abha" && styles.tabTextActive,
               ]}
             >
               Login with ABHA ID
             </Text>
           </Pressable>
           <Pressable
-            style={[styles.tabButton, authMethod === "mobile" && styles.tabActive]}
+            style={[styles.tabButton, patientMethod === "mobile" && styles.tabActive]}
             onPress={() => {
-              setAuthMethod("mobile");
+              setPatientMethod("mobile");
               setStatus("");
             }}
           >
             <Text
               style={[
                 styles.tabText,
-                authMethod === "mobile" && styles.tabTextActive,
+                patientMethod === "mobile" && styles.tabTextActive,
               ]}
             >
               Login with Mobile
@@ -253,7 +506,7 @@ export default function AuthChoiceScreen({ navigation, route }) {
           </Pressable>
         </View>
 
-        {authMethod === "abha" ? (
+        {patientMethod === "abha" ? (
           <View style={styles.sectionCard}>
             <Text style={styles.sectionTitle}>ABHA Verification</Text>
             <Text style={styles.sectionSubtitle}>
@@ -627,5 +880,20 @@ const styles = StyleSheet.create({
     color: "#0F172A",
     fontSize: 12.5,
     fontWeight: "600",
+  },
+  footerRow: {
+    marginTop: 18,
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 6,
+  },
+  footerText: {
+    fontSize: 13.5,
+    color: "#6B7280",
+  },
+  footerLink: {
+    fontSize: 13.5,
+    color: "#5DC1B9",
+    fontWeight: "700",
   },
 });
