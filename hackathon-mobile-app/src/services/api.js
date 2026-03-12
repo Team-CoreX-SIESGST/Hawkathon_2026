@@ -1,5 +1,7 @@
-const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_BASE_URL || "http://10.0.2.2:5002/api";
+const API_BASE_URL = (process.env.EXPO_PUBLIC_API_BASE_URL || "http://10.0.28.57:5001").replace(
+  /\/+$/,
+  ""
+);
 
 async function request(endpoint, method = "GET", body, token) {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -19,6 +21,222 @@ async function request(endpoint, method = "GET", body, token) {
 }
 
 export const apiHealth = () => request("/health");
+
+function buildErrorFromPayload(payload, fallbackMessage) {
+  if (payload && typeof payload === "object") {
+    const message = payload.error || payload.message;
+    if (typeof message === "string" && message.trim()) {
+      return new Error(message);
+    }
+  }
+  if (typeof payload === "string" && payload.trim()) {
+    return new Error(payload);
+  }
+  return new Error(fallbackMessage);
+}
+
+async function parseResponse(response) {
+  const text = await response.text();
+  if (!text) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
+function createSseParser(onEvent) {
+  let buffer = "";
+
+  function emitBlock(rawBlock) {
+    const block = rawBlock.trim();
+    if (!block) {
+      return;
+    }
+
+    const lines = block.split(/\r?\n/);
+    let eventName = "message";
+    const dataLines = [];
+
+    lines.forEach((line) => {
+      if (line.startsWith("event:")) {
+        eventName = line.slice(6).trim() || "message";
+      } else if (line.startsWith("data:")) {
+        dataLines.push(line.slice(5).trimStart());
+      }
+    });
+
+    if (!dataLines.length) {
+      return;
+    }
+
+    const dataText = dataLines.join("\n").trim();
+    if (!dataText) {
+      return;
+    }
+
+    if (dataText === "[DONE]") {
+      onEvent?.({ event: "done", data: null });
+      return;
+    }
+
+    let payload;
+    try {
+      payload = JSON.parse(dataText);
+    } catch {
+      payload = { raw: dataText };
+    }
+
+    onEvent?.({ event: eventName, data: payload });
+  }
+
+  return {
+    push(chunk = "") {
+      if (!chunk) {
+        return;
+      }
+      buffer += chunk;
+
+      const blocks = buffer.split(/\r?\n\r?\n/);
+      buffer = blocks.pop() || "";
+      blocks.forEach(emitBlock);
+    },
+    flush() {
+      if (buffer.trim()) {
+        emitBlock(buffer);
+      }
+      buffer = "";
+    },
+  };
+}
+
+export async function sendChatMessage({ token, prompt, conversationId }) {
+  const headers = {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  };
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_BASE_URL}/api/chat`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      prompt,
+      conversationId,
+    }),
+  });
+
+  const payload = await parseResponse(response);
+  if (!response.ok) {
+    throw buildErrorFromPayload(payload, "Chat request failed");
+  }
+
+  return payload;
+}
+
+export function streamChatMessage({
+  token,
+  prompt,
+  conversationId,
+  options,
+  onEvent,
+  onComplete,
+  onError,
+}) {
+  const xhr = new XMLHttpRequest();
+  const parser = createSseParser(onEvent);
+  let processedLength = 0;
+  let settled = false;
+
+  const requestBody = {
+    prompt,
+    options: {
+      includeImageSearch: true,
+      includeYouTube: true,
+      ...(options || {}),
+    },
+  };
+
+  if (conversationId) {
+    requestBody.conversationId = conversationId;
+  }
+
+  function fail(error) {
+    if (settled) {
+      return;
+    }
+    settled = true;
+    onError?.(error);
+  }
+
+  function complete() {
+    if (settled) {
+      return;
+    }
+    settled = true;
+    onComplete?.();
+  }
+
+  xhr.open("POST", `${API_BASE_URL}/api/chat/stream`, true);
+  xhr.setRequestHeader("Content-Type", "application/json");
+  xhr.setRequestHeader("Accept", "text/event-stream");
+  if (token) {
+    xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+  }
+
+  xhr.onprogress = () => {
+    if (xhr.readyState < XMLHttpRequest.LOADING) {
+      return;
+    }
+    const nextText = xhr.responseText.slice(processedLength);
+    processedLength = xhr.responseText.length;
+    parser.push(nextText);
+  };
+
+  xhr.onreadystatechange = () => {
+    if (xhr.readyState !== XMLHttpRequest.DONE) {
+      return;
+    }
+
+    const nextText = xhr.responseText.slice(processedLength);
+    processedLength = xhr.responseText.length;
+    parser.push(nextText);
+    parser.flush();
+
+    if (xhr.status >= 200 && xhr.status < 300) {
+      complete();
+      return;
+    }
+
+    let payload = null;
+    try {
+      payload = xhr.responseText ? JSON.parse(xhr.responseText) : null;
+    } catch {
+      payload = xhr.responseText;
+    }
+    fail(buildErrorFromPayload(payload, "Chat stream request failed"));
+  };
+
+  xhr.onerror = () => {
+    fail(new Error("Network error while streaming chat response"));
+  };
+
+  xhr.send(JSON.stringify(requestBody));
+
+  return () => {
+    if (settled) {
+      return;
+    }
+    settled = true;
+    xhr.abort();
+  };
+}
 
 export const patientRegister = (payload) =>
   request("/patient/register", "POST", payload);
@@ -45,3 +263,16 @@ export const ashaLogin = (payload) =>
 export const ashaUpdate = (token, payload) =>
   request("/asha/update", "PUT", payload, token);
 export const ashaMe = (token) => request("/asha/me", "GET", null, token);
+
+
+export async function getHealth() {
+  const response = await fetch(`${API_BASE_URL}/`, {
+    method: "GET",
+    headers: { Accept: "application/json,text/plain" },
+  });
+  const payload = await parseResponse(response);
+  return {
+    ok: response.ok,
+    payload,
+  };
+}

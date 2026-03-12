@@ -1,79 +1,14 @@
-import React, { useContext, useState } from "react";
-import { StyleSheet, Text, View, Pressable } from "react-native";
-import { AuthContext } from "../context/AuthContext";
-import { ashaMe, doctorMe, patientMe } from "../services/api";
-
-const ROLE_LABELS = {
-  patient: "Patient",
-  doctor: "Doctor",
-  asha: "ASHA Worker",
-};
+import React from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 export default function HomeScreen({ navigation }) {
-  const { user, token, role, signOut } = useContext(AuthContext);
-  const [profile, setProfile] = useState(user);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const refreshProfile = async () => {
-    if (!token || !role) return;
-    setLoading(true);
-    setError("");
-    try {
-      const data =
-        role === "patient"
-          ? await patientMe(token)
-          : role === "doctor"
-          ? await doctorMe(token)
-          : await ashaMe(token);
-      setProfile(data);
-    } catch (err) {
-      setError(err.message || "Unable to load profile");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleLogout = () => {
-    signOut();
-    navigation.reset({ index: 0, routes: [{ name: "RoleSelection" }] });
-  };
-
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Welcome</Text>
-      <Text style={styles.subtitle}>
-        {ROLE_LABELS[role] || "User"} dashboard
-      </Text>
+      <Text style={styles.title}>Home Screen</Text>
+      <Text style={styles.subtitle}>Hackathon mobile app is ready.</Text>
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Profile Snapshot</Text>
-        <Text style={styles.cardText}>
-          {profile?.name || "Name not set"}
-        </Text>
-        {profile?.abhaId ? (
-          <Text style={styles.cardSubText}>ABHA ID: {profile.abhaId}</Text>
-        ) : null}
-        {profile?.username ? (
-          <Text style={styles.cardSubText}>Username: {profile.username}</Text>
-        ) : null}
-        {profile?.hospitalName ? (
-          <Text style={styles.cardSubText}>
-            Hospital: {profile.hospitalName}
-          </Text>
-        ) : null}
-      </View>
-
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-      <Pressable style={styles.primaryButton} onPress={refreshProfile}>
-        <Text style={styles.primaryButtonText}>
-          {loading ? "Refreshing..." : "Refresh Profile"}
-        </Text>
-      </Pressable>
-
-      <Pressable style={styles.secondaryButton} onPress={handleLogout}>
-        <Text style={styles.secondaryButtonText}>Logout</Text>
+      <Pressable style={styles.button} onPress={() => navigation.navigate("Chat")}>
+        <Text style={styles.buttonText}>Go to Chat</Text>
       </Pressable>
     </View>
   );
@@ -134,19 +69,18 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontWeight: "700",
     fontSize: 16,
+    color: "#444444",
+    marginBottom: 20,
   },
-  secondaryButton: {
-    marginTop: 12,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
+  button: {
+    backgroundColor: "#111827",
+    borderRadius: 10,
+    paddingHorizontal: 18,
     paddingVertical: 12,
-    borderRadius: 14,
-    alignItems: "center",
-    backgroundColor: "#FFFFFF",
   },
-  secondaryButtonText: {
-    color: "#111827",
-    fontWeight: "600",
-    fontSize: 15,
+  buttonText: {
+    color: "#ffffff",
+    fontWeight: "700",
+    fontSize: 16,
   },
 });
