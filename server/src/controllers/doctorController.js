@@ -171,6 +171,7 @@ export const getDoctorsNearby = async (req, res) => {
                 username: item.doctor.username,
                 hospitalName: item.doctor.hospitalName,
                 locationCoordinates: item.doctor.locationCoordinates,
+                availableSlots: item.doctor.availableSlots || [],
                 distanceKm: Number(item.distanceKm.toFixed(2))
             }));
 
