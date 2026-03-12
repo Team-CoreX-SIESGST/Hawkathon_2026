@@ -6,6 +6,13 @@ import {
     getDoctorMe,
     getDoctorsNearby
 } from '../controllers/doctorController.js';
+import {
+    getDoctorAppointments,
+    updateDoctorAppointmentStatus,
+    startDoctorCall,
+    addAppointmentSummary
+} from '../controllers/appointmentController.js';
+import { getDoctorNotifications, markNotificationRead } from '../controllers/notificationController.js';
 import { protectDoctor } from '../middleware/roleAuth.js';
 
 const router = express.Router();
@@ -15,5 +22,11 @@ router.post('/login', loginDoctor);
 router.put('/update', protectDoctor, updateDoctor);
 router.get('/me', protectDoctor, getDoctorMe);
 router.get('/nearby', getDoctorsNearby);
+router.get('/appointments', protectDoctor, getDoctorAppointments);
+router.patch('/appointments/:id/status', protectDoctor, updateDoctorAppointmentStatus);
+router.post('/appointments/:id/start-call', protectDoctor, startDoctorCall);
+router.post('/appointments/:id/summary', protectDoctor, addAppointmentSummary);
+router.get('/notifications', protectDoctor, getDoctorNotifications);
+router.patch('/notifications/:id/read', protectDoctor, markNotificationRead);
 
 export default router;

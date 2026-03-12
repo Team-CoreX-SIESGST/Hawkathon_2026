@@ -15,6 +15,8 @@ import DoctorProfilePage from "../screens/DoctorProfilePage";
 import PatientProfilePage from "../screens/PatientProfilePage";
 import PatientConsultScreen from "../screens/PatientConsultScreen";
 import MedicineAvailabilityScreen from "../screens/MedicineAvailabilityScreen";
+import DoctorAppointmentsScreen from "../screens/DoctorAppointmentsScreen";
+import CallScreen from "../screens/CallScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -78,6 +80,16 @@ export default function AppNavigator() {
         <Stack.Screen
           name="MedicineAvailability"
           component={MedicineAvailabilityScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="DoctorAppointments"
+          component={DoctorAppointmentsScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="CallScreen"
+          component={CallScreen}
           options={{ headerShown: false }}
         />
       </Stack.Navigator>

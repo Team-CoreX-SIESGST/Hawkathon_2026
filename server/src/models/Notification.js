@@ -6,6 +6,7 @@ const notificationSchema = new mongoose.Schema(
         patient: { type: mongoose.Schema.Types.ObjectId, ref: 'PatientData', required: true },
         appointment: { type: mongoose.Schema.Types.ObjectId, ref: 'Appointment', required: true },
         message: { type: String, required: true, trim: true },
+        data: { type: mongoose.Schema.Types.Mixed },
         read: { type: Boolean, default: false }
     },
     { timestamps: true }

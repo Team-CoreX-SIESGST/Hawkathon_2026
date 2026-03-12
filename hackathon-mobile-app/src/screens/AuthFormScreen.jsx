@@ -178,7 +178,7 @@ export default function AuthFormScreen({ navigation, route }) {
       if (role === "patient") {
         nextScreen = "PatientDashboardMock";
       } else if (role === "doctor") {
-        nextScreen = "DoctorProfile";
+        nextScreen = "DoctorAppointments";
       }
 
       navigation.reset({ index: 0, routes: [{ name: nextScreen }] });

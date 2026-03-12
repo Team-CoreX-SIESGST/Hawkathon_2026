@@ -260,6 +260,18 @@ export const doctorNearby = (latitude, longitude, radiusKm = 10) =>
   request(
     `/doctor/nearby?latitude=${latitude}&longitude=${longitude}&radiusKm=${radiusKm}`
   );
+export const doctorAppointments = (token) =>
+  request("/doctor/appointments", "GET", null, token);
+export const doctorUpdateAppointmentStatus = (token, id, status) =>
+  request(`/doctor/appointments/${id}/status`, "PATCH", { status }, token);
+export const doctorStartCall = (token, id) =>
+  request(`/doctor/appointments/${id}/start-call`, "POST", null, token);
+export const doctorAddSummary = (token, id, payload) =>
+  request(`/doctor/appointments/${id}/summary`, "POST", payload, token);
+export const doctorNotifications = (token) =>
+  request("/doctor/notifications", "GET", null, token);
+export const doctorReadNotification = (token, id) =>
+  request(`/doctor/notifications/${id}/read`, "PATCH", null, token);
 
 export const ashaRegister = (payload) =>
   request("/asha/register", "POST", payload);
@@ -277,6 +289,10 @@ export const cancelAppointment = (token, id) =>
   request(`/appointments/${id}/cancel`, "PATCH", null, token);
 export const structureAppointment = (token, payload) =>
   request("/appointments/ai/structure", "POST", payload, token);
+export const patientNotifications = (token) =>
+  request("/patient/notifications", "GET", null, token);
+export const patientReadNotification = (token, id) =>
+  request(`/patient/notifications/${id}/read`, "PATCH", null, token);
 
 
 export async function getHealth() {

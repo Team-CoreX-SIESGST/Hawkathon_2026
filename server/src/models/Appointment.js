@@ -14,7 +14,7 @@ const appointmentSchema = new mongoose.Schema(
         },
         appointmentType: {
             type: String,
-            enum: ['OFFLINE', 'VIDEO_CALL'],
+            enum: ['OFFLINE', 'VIDEO_CALL', 'AUDIO_CALL'],
             default: 'OFFLINE'
         },
         problem: { type: String, required: true, trim: true },
@@ -25,10 +25,13 @@ const appointmentSchema = new mongoose.Schema(
         preferredTime: { type: String, required: true, trim: true },
         urgencyScore: { type: Number, default: 0 },
         aiSummary: { type: String, trim: true },
+        conversationTranscript: { type: String, trim: true },
+        conversationSummary: { type: String, trim: true },
+        conversationInsights: { type: String, trim: true },
         videoLink: { type: String, trim: true },
         status: {
             type: String,
-            enum: ['BOOKED', 'CANCELLED', 'COMPLETED'],
+            enum: ['BOOKED', 'IN_CALL', 'CANCELLED', 'COMPLETED'],
             default: 'BOOKED'
         }
     },
