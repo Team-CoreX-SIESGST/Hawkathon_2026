@@ -10,6 +10,7 @@ import {
   Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useNavigation } from "@react-navigation/native";
 import { Feather } from "@expo/vector-icons";
 import { patientMe } from "../services/api";
 import { AuthContext } from "../context/AuthContext";
@@ -38,9 +39,11 @@ const fallbackProfile = {
 };
 
 export default function PatientProfilePage() {
-  const { token, user } = useContext(AuthContext);
+  const navigation = useNavigation();
+  const { token, user, signOut } = useContext(AuthContext);
   const [profile, setProfile] = useState(fallbackProfile);
   const [loading, setLoading] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const mergedProfile = useMemo(() => {
     // Prefer ABHA profile coming from the logged-in user,
@@ -147,6 +150,12 @@ export default function PatientProfilePage() {
     }
   };
 
+  const handleLogout = () => {
+    setMenuOpen(false);
+    signOut();
+    navigation.reset({ index: 0, routes: [{ name: "RoleSelection" }] });
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
@@ -155,8 +164,20 @@ export default function PatientProfilePage() {
             <Feather name="chevron-left" size={20} color="#4B5563" />
           </View>
           <Text style={styles.headerTitle}>Patient Profile</Text>
-          <View style={styles.headerIcon}>
-            <Feather name="more-vertical" size={18} color="#4B5563" />
+          <View style={styles.headerMenuWrap}>
+            <Pressable
+              style={styles.headerIcon}
+              onPress={() => setMenuOpen((prev) => !prev)}
+            >
+              <Feather name="more-vertical" size={18} color="#4B5563" />
+            </Pressable>
+            {menuOpen && (
+              <View style={styles.headerMenu}>
+                <Pressable style={styles.menuItem} onPress={handleLogout}>
+                  <Text style={styles.menuTextDanger}>Logout</Text>
+                </Pressable>
+              </View>
+            )}
           </View>
         </View>
 
@@ -291,6 +312,34 @@ const styles = StyleSheet.create({
     backgroundColor: "#E8F6F4",
     alignItems: "center",
     justifyContent: "center",
+  },
+  headerMenuWrap: {
+    alignItems: "flex-end",
+  },
+  headerMenu: {
+    position: "absolute",
+    top: 44,
+    right: 0,
+    width: 140,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E6F2F0",
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 6,
+    zIndex: 10,
+  },
+  menuItem: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  menuTextDanger: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#DC2626",
   },
   headerTitle: {
     fontSize: 18,

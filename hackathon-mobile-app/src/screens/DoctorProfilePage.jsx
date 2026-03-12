@@ -26,9 +26,14 @@ const fallbackProfile = {
 };
 
 export default function DoctorProfilePage({ navigation }) {
-  const { token, user } = useContext(AuthContext);
+  const { token, user, signOut } = useContext(AuthContext);
   const [profile, setProfile] = useState(fallbackProfile);
   const [loading, setLoading] = useState(false);
+
+  const handleLogout = () => {
+    signOut();
+    navigation.reset({ index: 0, routes: [{ name: "RoleSelection" }] });
+  };
 
   const mergedProfile = useMemo(() => {
     if (!user) return profile;
@@ -84,9 +89,14 @@ export default function DoctorProfilePage({ navigation }) {
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.headerRow}>
           <Text style={styles.headerTitle}>Doctor Profile</Text>
-          <Pressable style={styles.shareButton}>
-            <Text style={styles.shareIcon}>↗</Text>
-          </Pressable>
+          <View style={styles.headerActions}>
+            <Pressable style={styles.shareButton}>
+              <Text style={styles.shareIcon}>↗</Text>
+            </Pressable>
+            <Pressable style={styles.logoutButton} onPress={handleLogout}>
+              <Text style={styles.logoutText}>Logout</Text>
+            </Pressable>
+          </View>
         </View>
 
         <View style={styles.profileCard}>
@@ -225,6 +235,11 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#0F172A",
   },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
   shareButton: {
     width: 36,
     height: 36,
@@ -236,6 +251,17 @@ const styles = StyleSheet.create({
   shareIcon: {
     fontSize: 16,
     color: "#5DC1B9",
+  },
+  logoutButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 14,
+    backgroundColor: "#0F172A",
+  },
+  logoutText: {
+    color: "#FFFFFF",
+    fontSize: 12.5,
+    fontWeight: "700",
   },
   profileCard: {
     backgroundColor: "#F8FFFE",
