@@ -1,5 +1,4 @@
 import jwt from 'jsonwebtoken';
-import PatientAccount from '../models/PatientAccount.js';
 import Patient from '../models/Patient.js';
 
 const generateToken = (id, role) => {
@@ -42,23 +41,27 @@ export const registerPatient = async (req, res) => {
             return res.status(400).json({ message: 'Please provide all required fields' });
         }
 
-        const existing = await PatientAccount.findOne({ abhaId });
+        const existing = await Patient.findOne({
+            'abha_profile.healthIdNumber': abhaId
+        });
         if (existing) {
             return res.status(400).json({ message: 'Patient already exists' });
         }
 
-        const patient = await PatientAccount.create({
-            name,
-            abhaId,
-            phoneNumber,
+        const patient = await Patient.create({
+            abha_profile: {
+                healthIdNumber: abhaId,
+                name,
+                mobile: phoneNumber
+            },
             locationCoordinates: parsedLocation
         });
 
         res.status(201).json({
             _id: patient._id,
-            name: patient.name,
-            abhaId: patient.abhaId,
-            phoneNumber: patient.phoneNumber,
+            name: patient?.abha_profile?.name,
+            abhaId: patient?.abha_profile?.healthIdNumber,
+            phoneNumber: patient?.abha_profile?.mobile,
             locationCoordinates: patient.locationCoordinates,
             token: generateToken(patient._id, 'patient')
         });
@@ -77,35 +80,21 @@ export const loginPatient = async (req, res) => {
             return res.status(400).json({ message: 'ABHA ID is required' });
         }
 
-        const patientData = await Patient.findOne({
+        const patient = await Patient.findOne({
             'abha_profile.healthIdNumber': abhaId
         });
 
-        if (!patientData) {
+        if (!patient) {
             return res.status(401).json({ message: 'Invalid ABHA ID' });
         }
 
-        let patientAccount = await PatientAccount.findOne({ abhaId });
-        if (!patientAccount) {
-            const coords = patientData.locationCoordinates;
-            if (!coords?.latitude || !coords?.longitude) {
-                return res.status(400).json({ message: 'Patient location not set' });
-            }
-            patientAccount = await PatientAccount.create({
-                name: patientData?.abha_profile?.name || 'Patient',
-                abhaId,
-                phoneNumber: patientData?.abha_profile?.mobile || 'NA',
-                locationCoordinates: coords
-            });
-        }
-
         res.json({
-            _id: patientAccount._id,
-            name: patientAccount.name,
-            abhaId: patientAccount.abhaId,
-            phoneNumber: patientAccount.phoneNumber,
-            locationCoordinates: patientAccount.locationCoordinates,
-            token: generateToken(patientAccount._id, 'patient')
+            _id: patient._id,
+            name: patient?.abha_profile?.name,
+            abhaId: patient?.abha_profile?.healthIdNumber,
+            phoneNumber: patient?.abha_profile?.mobile,
+            locationCoordinates: patient.locationCoordinates,
+            token: generateToken(patient._id, 'patient')
         });
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -118,8 +107,8 @@ export const loginPatient = async (req, res) => {
 export const updatePatient = async (req, res) => {
     try {
         const updates = {};
-        if (req.body.name) updates.name = req.body.name;
-        if (req.body.phoneNumber) updates.phoneNumber = req.body.phoneNumber;
+        if (req.body.name) updates['abha_profile.name'] = req.body.name;
+        if (req.body.phoneNumber) updates['abha_profile.mobile'] = req.body.phoneNumber;
 
         if (req.body.locationCoordinates || req.body.latitude || req.body.longitude) {
             const parsedLocation = parseLocation(
@@ -133,27 +122,15 @@ export const updatePatient = async (req, res) => {
             updates.locationCoordinates = parsedLocation;
         }
 
-        const patient = await PatientAccount.findByIdAndUpdate(req.user._id, updates, {
+        const patient = await Patient.findByIdAndUpdate(req.user._id, updates, {
             new: true
         });
 
-        if (updates.locationCoordinates && patient?.abhaId) {
-            await Patient.updateMany(
-                {
-                    $or: [
-                        { 'abha_profile.healthId': patient.abhaId },
-                        { 'abha_profile.healthIdNumber': patient.abhaId }
-                    ]
-                },
-                { $set: { locationCoordinates: updates.locationCoordinates } }
-            );
-        }
-
         res.json({
             _id: patient._id,
-            name: patient.name,
-            abhaId: patient.abhaId,
-            phoneNumber: patient.phoneNumber,
+            name: patient?.abha_profile?.name,
+            abhaId: patient?.abha_profile?.healthIdNumber,
+            phoneNumber: patient?.abha_profile?.mobile,
             locationCoordinates: patient.locationCoordinates
         });
     } catch (error) {
@@ -167,9 +144,9 @@ export const updatePatient = async (req, res) => {
 export const getPatientMe = async (req, res) => {
     res.json({
         _id: req.user._id,
-        name: req.user.name,
-        abhaId: req.user.abhaId,
-        phoneNumber: req.user.phoneNumber,
+        name: req.user?.abha_profile?.name,
+        abhaId: req.user?.abha_profile?.healthIdNumber,
+        phoneNumber: req.user?.abha_profile?.mobile,
         locationCoordinates: req.user.locationCoordinates
     });
 };

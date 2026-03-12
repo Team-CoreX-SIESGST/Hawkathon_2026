@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import PatientAccount from '../models/PatientAccount.js';
+import Patient from '../models/Patient.js';
 import DoctorAccount from '../models/DoctorAccount.js';
 import AshaWorkerAccount from '../models/AshaWorkerAccount.js';
 
@@ -34,6 +34,6 @@ const buildProtect = (Model, role) => async (req, res, next) => {
     }
 };
 
-export const protectPatient = buildProtect(PatientAccount, 'patient');
+export const protectPatient = buildProtect(Patient, 'patient');
 export const protectDoctor = buildProtect(DoctorAccount, 'doctor');
 export const protectAsha = buildProtect(AshaWorkerAccount, 'asha');
