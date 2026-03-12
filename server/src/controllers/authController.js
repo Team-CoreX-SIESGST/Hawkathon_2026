@@ -1,12 +1,8 @@
 import User from '../models/User.js';
-import jwt from 'jsonwebtoken';
+import { signToken } from '../utils/jwt.js';
 
 const generateToken = (id) => {
-    return jwt.sign(
-        { id },
-        process.env.JWT_SECRET || 'fallback_secret_key_123',
-        { expiresIn: '30d' }
-    );
+    return signToken({ id }, { expiresIn: '30d' });
 };
 
 // @desc    Register a new user
