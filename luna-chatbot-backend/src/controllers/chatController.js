@@ -3,7 +3,7 @@ import fetch from 'node-fetch';
 import { createClient } from '@supabase/supabase-js';
 import { generateContent, buildRequestBody, MODEL_ID, BASE_URL, extractTextFromUploads, extractImagesFromUploads } from '../helpers/gemini.js';
 import { searchImages } from '../helpers/imageSearch.js';
-import { RESEARCH_ASSISTANT_PROMPT } from '../prompts/researchAssistantPrompt.js';
+import { MEDISETU_PROMPT } from '../prompts/doc.js';
 import YouTubeMCP from '../helpers/youtubeSearch.js';
 import env from '../config/env.js';
 import { processMermaidBlocks } from '../helpers/mermaid.js';
@@ -428,7 +428,7 @@ export async function handleChatStreamGenerate(req, res) {
     const includeSearch = typeof options.includeSearch === 'boolean' ? options.includeSearch : (files.length === 0);
     const includeImageSearch = options.includeImageSearch !== false;
     const includeYouTube = options.includeYouTube === true; // Opt-in for YouTube search
-    const systemPrompt = options.systemPrompt || RESEARCH_ASSISTANT_PROMPT({ username });
+    const systemPrompt = options.systemPrompt || MEDISETU_PROMPT({ username });
     const uploadContext = uploadedText ? uploadedText.slice(0, 400) : '';
     const contextualSearchQuery = buildContextualSearchQuery({ prompt, history: messages, extra: uploadContext });
 
@@ -677,37 +677,10 @@ export async function handleChatStreamGenerate(req, res) {
           res.write(`event: sources\n`);
           res.write(`data: ${JSON.stringify({ sources: finalSourcesWithTitles })}\n\n`);
         } else {
-          console.log('[chatStream] no streamed grounding sources found; attempting fallback generateContent for sources');
-          // Fallback: perform a quick non-stream call to obtain sources
-          try {
-            const gen = await generateContent(prompt, userId, {
-              history: chatHistory.slice(-10),
-              includeSearch,
-              uploads: files,
-              username,
-            });
-            finalSourcesWithTitles = Array.isArray(gen?.sources) ? gen.sources : [];
-            if (finalSourcesWithTitles.length > 0) {
-              console.log(`[chatStream] fallback produced sources: count=${finalSourcesWithTitles.length}`);
-              if (!res.writableEnded) {
-                res.write(`event: sources\n`);
-                res.write(`data: ${JSON.stringify({ sources: finalSourcesWithTitles })}\n\n`);
-              }
-            } else {
-              console.log('[chatStream] fallback produced no sources');
-              if (!res.writableEnded) {
-                console.log('[chatStream] emitting empty sources event');
-                res.write(`event: sources\n`);
-                res.write(`data: {"sources": []}\n\n`);
-              }
-            }
-          } catch (e) {
-            console.warn('Fallback source fetch failed:', e?.message || e);
-            if (!res.writableEnded) {
-              console.log('[chatStream] emitting empty sources event due to fallback error');
-              res.write(`event: sources\n`);
-              res.write(`data: {"sources": []}\n\n`);
-            }
+          console.log('[chatStream] no streamed grounding sources found; emitting empty sources event');
+          if (!res.writableEnded) {
+            res.write(`event: sources\n`);
+            res.write(`data: {"sources": []}\n\n`);
           }
         }
       } catch (e) {

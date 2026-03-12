@@ -25,9 +25,9 @@ const roles = [
     background: "#F5FBFF",
   },
   {
-    key: "abha",
-    title: "ABHA Seva Mitra (आभा सेवा मित्र)",
-    description: "Update medicine availability and manage local orders.",
+    key: "asha",
+    title: "ASHA Worker",
+    description: "Support patients locally and coordinate health services.",
     icon: require("../../assets/male-icon.png"),
     background: "#FFF8EC",
   },
@@ -37,7 +37,7 @@ export default function RoleSelectionScreen({ navigation }) {
   const [selectedRole, setSelectedRole] = useState("patient");
   const currentSelection = useMemo(
     () => roles.find((role) => role.key === selectedRole),
-    [selectedRole]
+    [selectedRole],
   );
 
   return (
@@ -77,7 +77,9 @@ export default function RoleSelectionScreen({ navigation }) {
       <View style={styles.footer}>
         <Pressable
           style={styles.primaryButton}
-          onPress={() => navigation.navigate("Login", { role: currentSelection?.key })}
+          onPress={() =>
+            navigation.navigate("AuthChoice", { role: currentSelection?.key })
+          }
         >
           <Text style={styles.primaryButtonText}>Continue</Text>
         </Pressable>

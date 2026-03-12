@@ -1,5 +1,8 @@
 import express from 'express';
 import authRoutes from './authRoutes.js';
+import patientRoutes from './patientRoutes.js';
+import doctorRoutes from './doctorRoutes.js';
+import ashaRoutes from './ashaRoutes.js';
 
 const router = express.Router();
 
@@ -10,6 +13,9 @@ router.get('/health', (req, res) => {
 
 // Authentication routes
 router.use('/auth', authRoutes);
+router.use('/patient', patientRoutes);
+router.use('/doctor', doctorRoutes);
+router.use('/asha', ashaRoutes);
 
 // Add your resource routes here
 // import userRoutes from './userRoutes.js';

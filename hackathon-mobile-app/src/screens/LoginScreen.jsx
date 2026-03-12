@@ -26,7 +26,7 @@ export default function LoginScreen() {
               accessibilityLabel="ArogyaGram logo"
             />
           </View>
-          <Text style={styles.appName}>ArogyaGram</Text>
+          <Text style={styles.appName}>Arogyagram</Text>
           <Text style={styles.tagline}>Your trusted healthcare partner</Text>
         </View>
 

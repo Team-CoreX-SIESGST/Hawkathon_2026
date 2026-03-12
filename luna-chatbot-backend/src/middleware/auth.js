@@ -17,7 +17,7 @@ export const authenticate = (req, res, next) => {
   }
 };
 
-// Require authentication (to protect routes)
+// Require authentication (to protect routes)r
 export const requireAuth = (req, res, next) => {
   if (!req.userId) {
     return res.status(401).json({ error: 'Authentication required' });
