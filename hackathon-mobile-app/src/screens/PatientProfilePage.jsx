@@ -43,27 +43,56 @@ export default function PatientProfilePage() {
   const [loading, setLoading] = useState(false);
 
   const mergedProfile = useMemo(() => {
+    // Prefer ABHA profile coming from the logged-in user,
+    // then any profile loaded via /patient/me, then fallback.
     const abhaProfile = user?.abha_profile || profile.abha_profile || {};
+
     return {
+      ...fallbackProfile,
       ...profile,
       name:
         abhaProfile.firstName ||
         abhaProfile.name ||
         user?.name ||
-        profile.name,
-      abhaId: abhaProfile.abha_id || user?.abhaId || profile.abhaId,
+        fallbackProfile.name,
+      // ABHA number shown under the name
+      abhaId:
+        abhaProfile.healthIdNumber ||
+        abhaProfile.abha_id ||
+        user?.abhaId ||
+        fallbackProfile.abhaId,
+      // ABHA card link (image / PDF URL)
       abhaIdCard:
-        abhaProfile.abha_id_card || user?.abhaIdCard || profile.abhaIdCard,
-      email: abhaProfile.email || user?.email || profile.email,
-      gender: abhaProfile.gender || user?.gender || profile.gender,
-      bloodGroup: user?.bloodGroup || profile.bloodGroup,
-      bmi: user?.bmi || profile.bmi,
-      allergies: user?.allergies || profile.allergies,
-      condition: user?.condition || profile.condition,
-      policyNumber: user?.policyNumber || profile.policyNumber,
-      supportName: user?.supportName || profile.supportName,
-      supportRole: user?.supportRole || profile.supportRole,
-      address: user?.address || profile.address,
+        abhaProfile.abha_id_card ||
+        user?.abhaIdCard ||
+        fallbackProfile.abhaIdCard,
+      // Show ABHA handle (healthId) in the "email" row as requested
+      email:
+        abhaProfile.healthId ||
+        abhaProfile.email ||
+        user?.email ||
+        fallbackProfile.email,
+      // Drive gender primarily from ABHA profile
+      gender: abhaProfile.gender || user?.gender || fallbackProfile.gender,
+      // Health vitals: prefer values coming from the logged-in user
+      // (server response on login), then anything we loaded into profile,
+      // and finally the static fallback.
+      bloodGroup:
+        user?.bloodGroup || profile.bloodGroup || fallbackProfile.bloodGroup,
+      bmi: user?.bmi || profile.bmi || fallbackProfile.bmi,
+      allergies:
+        user?.allergies || profile.allergies || fallbackProfile.allergies,
+      condition:
+        user?.condition || profile.condition || fallbackProfile.condition,
+      policyNumber:
+        user?.policyNumber ||
+        profile.policyNumber ||
+        fallbackProfile.policyNumber,
+      supportName:
+        user?.supportName || profile.supportName || fallbackProfile.supportName,
+      supportRole:
+        user?.supportRole || profile.supportRole || fallbackProfile.supportRole,
+      address: user?.address || profile.address || fallbackProfile.address,
     };
   }, [profile, user]);
 
@@ -87,6 +116,8 @@ export default function PatientProfilePage() {
           supportName: data.supportName || prev.supportName,
           supportRole: data.supportRole || prev.supportRole,
           address: data.address || prev.address,
+          recentConsultation:
+            data.recentConsultation || prev.recentConsultation || fallbackProfile.recentConsultation,
         }));
       } catch (err) {
         // keep fallback data

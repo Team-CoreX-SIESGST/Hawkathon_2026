@@ -136,17 +136,80 @@ export const updatePatient = async (req, res) => {
     }
 };
 
-// @desc    Get current patient profile
+// @desc    Get current patient profile (rich view for mobile app)
 // @route   GET /api/patient/me
 // @access  Private
 export const getPatientMe = async (req, res) => {
-    res.json({
-        _id: req.user._id,
-        name: req.user?.abha_profile?.name,
-        abhaId: req.user?.abha_profile?.healthIdNumber,
-        phoneNumber: req.user?.abha_profile?.mobile,
-        locationCoordinates: req.user.locationCoordinates
-    });
+    try {
+        const patient = req.user;
+        const abha = patient?.abha_profile || {};
+        const health = patient?.health_records || {};
+        const address = patient?.address || {};
+        const insurance = patient?.insurance || {};
+        const asha = patient?.ashaWorker || {};
+
+        const consultations = Array.isArray(patient?.consultations)
+            ? patient.consultations
+            : [];
+        const recent = consultations.length > 0 ? consultations[0] : null;
+
+        const fullAddressParts = [
+            address.addressLine,
+            address.village,
+            address.subDistrict,
+            address.district,
+            address.state,
+            address.pincode,
+            address.country
+        ].filter(Boolean);
+
+        res.json({
+            _id: patient._id,
+            // Basic identifiers
+            name: abha.firstName || abha.name || patient.name,
+            abhaId: abha.healthIdNumber,
+            healthId: abha.healthId,
+            phoneNumber: abha.mobile,
+            // Raw ABHA profile for richer client use
+            abha_profile: abha,
+            // Flattened health record fields used by the mobile app
+            bloodGroup: health.bloodGroup || null,
+            bmi: typeof health.bmi === 'number' ? health.bmi : null,
+            allergies: Array.isArray(health.allergies)
+                ? health.allergies.join(', ')
+                : health.allergies || null,
+            condition: Array.isArray(health.chronicConditions)
+                ? health.chronicConditions.join(', ')
+                : health.chronicConditions || null,
+            // Insurance / policy
+            policyNumber: insurance.policyNumber || null,
+            // Local support / ASHA worker
+            supportName: asha.name || null,
+            supportRole: asha.village
+                ? `ASHA Worker, ${asha.village}`
+                : asha.name
+                ? 'ASHA Worker'
+                : null,
+            // Human readable address line
+            address: fullAddressParts.length ? fullAddressParts.join(', ') : null,
+            // Recent consultation summary used by the profile screen
+            recentConsultation: recent
+                ? {
+                      doctor: recent.doctorName,
+                      specialty: recent.facility,
+                      status: 'Completed',
+                      diagnosis: Array.isArray(recent.diagnosis)
+                          ? recent.diagnosis.join(', ')
+                          : recent.diagnosis,
+                      followUp: recent.followUpDate
+                  }
+                : null,
+            // Location (used for nearby search)
+            locationCoordinates: patient.locationCoordinates
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
 };
 
 // @desc    Get patients near a coordinate
