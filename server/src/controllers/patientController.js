@@ -73,6 +73,7 @@ export const registerPatient = async (req, res) => {
 export const loginPatient = async (req, res) => {
     try {
         const { abhaId } = req.body;
+        console.log(abhaId)
         if (!abhaId) {
             return res.status(400).json({ message: 'ABHA ID is required' });
         }
