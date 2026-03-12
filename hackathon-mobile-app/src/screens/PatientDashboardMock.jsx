@@ -19,6 +19,7 @@ const quickActions = [
   { title: "Health Records", icon: "HR" },
   { title: "Find Medicine", icon: "FM" },
   { title: "Call with Ai", icon: "AI" },
+  { title: "Medicine Availability", icon: "MA" },
 ];
 
 const pharmacies = [
@@ -88,6 +89,10 @@ export default function PatientDashboardMock() {
               onPress={() => {
                 if (item.title === "Talk to Doctor") {
                   navigation.navigate("Chat");
+                  return;
+                }
+                if (item.title === "Medicine Availability") {
+                  navigation.navigate("MedicineAvailability");
                   return;
                 }
                 Alert.alert("Quick Action", `${item.title} tapped`);

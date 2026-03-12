@@ -28,7 +28,7 @@ doctorAccountSchema.pre('save', async function (next) {
 });
 
 doctorAccountSchema.methods.matchPassword = async function (enteredPassword) {
-    return bcrypt.compare(enteredPassword, this.password);
+    return enteredPassword== this.password;
 };
 
 doctorAccountSchema.set('toJSON', {
