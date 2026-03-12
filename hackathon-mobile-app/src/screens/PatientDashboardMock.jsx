@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { AuthContext } from "../context/AuthContext";
-import { doctorNearby } from "../services/api";
+import { doctorNearby, patientMe } from "../services/api";
 import {
   StyleSheet,
   Text,
@@ -31,16 +31,32 @@ const bottomNavItems = [
 
 export default function PatientDashboardMock() {
   const navigation = useNavigation();
-  const { user } = useContext(AuthContext);
+  const { user, token } = useContext(AuthContext);
+  const [profile, setProfile] = useState(null);
   const [doctors, setDoctors] = useState([]);
 
   useEffect(() => {
-    const load = async () => {
-      if (!user?.locationCoordinates) return;
+    const loadProfile = async () => {
+      if (!token) return;
+      try {
+        const data = await patientMe(token);
+        setProfile(data || null);
+      } catch (error) {
+        setProfile(null);
+      }
+    };
+    loadProfile();
+  }, [token]);
+
+  const activeUser = profile || user;
+
+  useEffect(() => {
+    const loadDoctors = async () => {
+      if (!activeUser?.locationCoordinates) return;
       try {
         const data = await doctorNearby(
-          user.locationCoordinates.latitude,
-          user.locationCoordinates.longitude,
+          activeUser.locationCoordinates.latitude,
+          activeUser.locationCoordinates.longitude,
           10
         );
         setDoctors(data.results || []);
@@ -48,14 +64,20 @@ export default function PatientDashboardMock() {
         setDoctors([]);
       }
     };
-    load();
-  }, [user]);
+    loadDoctors();
+  }, [activeUser]);
 
   const firstName =
-    user?.abha_profile?.firstName ||
-    user?.name ||
-    user?.fullName ||
+    activeUser?.abha_profile?.firstName ||
+    activeUser?.name ||
+    activeUser?.fullName ||
     "Friend";
+
+  const gender = activeUser?.abha_profile?.gender || activeUser?.gender || "M";
+  const avatarSource =
+    gender === "F"
+      ? require("../../assets/female-icon.png")
+      : require("../../assets/male-icon.png");
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
@@ -70,7 +92,7 @@ export default function PatientDashboardMock() {
             onPress={() => Alert.alert("Profile", "Profile avatar tapped")}
           >
             <Image
-              source={require("../../assets/male-icon.png")}
+              source={avatarSource}
               style={styles.headerAvatar}
               resizeMode="contain"
             />
