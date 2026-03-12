@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   Alert,
 } from "react-native";
+import { Feather } from "@expo/vector-icons";
 
 const quickActions = [
   { title: "Talk to Doctor", icon: "TD" },
@@ -19,22 +20,13 @@ const quickActions = [
   { title: "Health Records", icon: "HR" },
   { title: "Find Medicine", icon: "FM" },
   { title: "Call with Ai", icon: "AI" },
-  { title: "Medicine Availability", icon: "MA" },
 ];
 
-const pharmacies = [
-  {
-    name: "HealthFirst Medico",
-    meta: "0.8 km · Open 24/7",
-    badge: "HF",
-    tint: "#E7F1FF",
-  },
-  {
-    name: "CureAll Pharmacy",
-    meta: "1.2 km · Closing at 10 PM",
-    badge: "CA",
-    tint: "#E9F7EE",
-  },
+const bottomNavItems = [
+  { label: "Home", icon: "home" },
+  { label: "Consult", icon: "message-circle", route: "PatientConsult" },
+  { label: "Records", icon: "file-text" },
+  { label: "Profile", icon: "user" },
 ];
 
 export default function PatientDashboardMock() {
@@ -58,13 +50,19 @@ export default function PatientDashboardMock() {
     };
     load();
   }, [user]);
+
+  const firstName =
+    user?.abha_profile?.firstName ||
+    user?.name ||
+    user?.fullName ||
+    "Friend";
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.header}>
           <View>
             <Text style={styles.greetingSmall}>Good Morning,</Text>
-            <Text style={styles.greeting}>Hello, Elsie</Text>
+            <Text style={styles.greeting}>{`Hello, ${firstName}`}</Text>
           </View>
           <TouchableOpacity
             style={styles.avatarRing}
@@ -89,10 +87,6 @@ export default function PatientDashboardMock() {
               onPress={() => {
                 if (item.title === "Talk to Doctor") {
                   navigation.navigate("Chat");
-                  return;
-                }
-                if (item.title === "Medicine Availability") {
-                  navigation.navigate("MedicineAvailability");
                   return;
                 }
                 Alert.alert("Quick Action", `${item.title} tapped`);
@@ -141,70 +135,42 @@ export default function PatientDashboardMock() {
             </TouchableOpacity>
           ))}
         </View>
+      </ScrollView>
 
-        <View style={styles.sectionRow}>
-          <Text style={styles.sectionTitle}>Nearby Pharmacy</Text>
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => Alert.alert("Pharmacy", "View map tapped")}
-          >
-            <Text style={styles.sectionLink}>View Map</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.pharmacyList}>
-          {pharmacies.map((pharmacy) => (
+      <View style={styles.bottomNav}>
+        {bottomNavItems.map((item, index) => {
+          const isActive = index === 0;
+          return (
             <TouchableOpacity
-              key={pharmacy.name}
-              style={styles.pharmacyCard}
-              activeOpacity={0.8}
+              key={item.label}
+              style={styles.navItem}
+              activeOpacity={0.7}
               onPress={() =>
-                Alert.alert("Pharmacy", `${pharmacy.name} card tapped`)
+                item.route
+                  ? navigation.navigate(item.route)
+                  : Alert.alert("Navigation", `${item.label} tab tapped`)
               }
             >
               <View
                 style={[
-                  styles.pharmacyBadge,
-                  { backgroundColor: pharmacy.tint },
+                  styles.navIconCircle,
+                  isActive && styles.navIconCircleActive,
                 ]}
               >
-                <Text style={styles.pharmacyBadgeText}>{pharmacy.badge}</Text>
+                <Feather
+                  name={item.icon}
+                  size={18}
+                  color={isActive ? "#10B981" : "#6B7280"}
+                />
               </View>
-              <View style={styles.pharmacyInfo}>
-                <Text style={styles.pharmacyName}>{pharmacy.name}</Text>
-                <Text style={styles.pharmacyMeta}>{pharmacy.meta}</Text>
-              </View>
-              <View style={styles.pharmacyArrow}>
-                <Text style={styles.pharmacyArrowText}>{">"}</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </ScrollView>
-
-      <View style={styles.bottomNav}>
-        {["Home", "Consult", "Records", "Pharmacy", "Profile"].map(
-          (label, index) => (
-            <TouchableOpacity
-              key={label}
-              style={styles.navItem}
-              activeOpacity={0.7}
-              onPress={() =>
-                label === "Consult"
-                  ? navigation.navigate("PatientConsult")
-                  : Alert.alert("Navigation", `${label} tab tapped`)
-              }
-            >
-              <View
-                style={[styles.navDot, index === 0 && styles.navDotActive]}
-              />
               <Text
-                style={[styles.navLabel, index === 0 && styles.navLabelActive]}
+                style={[styles.navLabel, isActive && styles.navLabelActive]}
               >
-                {label}
+                {item.label}
               </Text>
             </TouchableOpacity>
-          )
-        )}
+          );
+        })}
       </View>
     </SafeAreaView>
   );
@@ -410,29 +376,42 @@ const styles = StyleSheet.create({
   },
   bottomNav: {
     position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 74,
+    left: 16,
+    right: 16,
+    bottom: 16,
+    height: 80,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-around",
     backgroundColor: "#FFFFFF",
-    borderTopWidth: 1,
-    borderTopColor: "#EEF1F4",
+    borderRadius: 24,
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 6,
   },
   navItem: {
     alignItems: "center",
-    gap: 6,
+    gap: 4,
   },
-  navDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "#CBD5E1",
+  navIconCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "#F3F4F6",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  navDotActive: {
-    backgroundColor: "#5DC1B9",
+  navIconCircleActive: {
+    backgroundColor: "#E8F6F4",
+  },
+  navIconText: {
+    fontSize: 18,
+    color: "#6B7280",
+  },
+  navIconTextActive: {
+    color: "#10B981",
   },
   navLabel: {
     fontSize: 12,
