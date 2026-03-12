@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 const abhaProfileSchema = new mongoose.Schema(
     {
-        healthIdNumber: { type: String, required: true, index: true },
+        healthIdNumber: { type: String, required: true },
         healthId: { type: String, index: true },
         name: { type: String, trim: true },
         firstName: { type: String, trim: true },
