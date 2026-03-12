@@ -245,6 +245,30 @@ export const patientRegister = (payload) =>
   request("/patient/register", "POST", payload);
 export const patientLogin = (payload) =>
   request("/patient/login", "POST", payload);
+export const sendPatientOtp = (payload) =>
+  request("/patient/otp/send", "POST", payload);
+export const verifyPatientOtp = (payload) =>
+  request("/patient/otp/verify", "POST", payload);
+export async function uploadAbhaCard({ uri, name, type }) {
+  const formData = new FormData();
+  formData.append("abhaCard", {
+    uri,
+    name: name || `abha-card-${Date.now()}.jpg`,
+    type: type || "image/jpeg",
+  });
+
+  const response = await fetch(`${API_BASE_URL}/api/patient/abha/ocr`, {
+    method: "POST",
+    headers: { Accept: "application/json" },
+    body: formData,
+  });
+
+  const payload = await parseResponse(response);
+  if (!response.ok) {
+    throw buildErrorFromPayload(payload, "ABHA OCR failed");
+  }
+  return payload;
+}
 export const patientUpdate = (token, payload) =>
   request("/patient/update", "PUT", payload, token);
 export const patientMe = (token) => request("/patient/me", "GET", null, token);
