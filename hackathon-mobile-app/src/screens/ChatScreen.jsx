@@ -12,10 +12,13 @@ import {
   Text,
   TextInput,
   View,
+  Animated,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { streamChatMessage } from "../services/api";
 import { Feather } from "@expo/vector-icons";
+import { offlineMatch, streamOfflineResponse } from "../services/offlineAI";
 
 const quickSymptoms = [
   { id: 1, label: "Fever", icon: "🌡️" },
@@ -405,6 +408,7 @@ function MessageBubble({ message, onOpenUrl }) {
 }
 
 export default function ChatScreen({ route, navigation }) {
+  const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
   const listRef = React.useRef(null);
   const abortStreamRef = React.useRef(null);
@@ -418,6 +422,8 @@ export default function ChatScreen({ route, navigation }) {
   const [toolsOpen, setToolsOpen] = React.useState(false);
   const [includeYouTube, setIncludeYouTube] = React.useState(false);
   const [includeWebImages, setIncludeWebImages] = React.useState(false);
+  const [offlineMode, setOfflineMode] = React.useState(false);
+  const [suggestions, setSuggestions] = React.useState([]);
 
   React.useEffect(() => {
     return () => {
@@ -464,9 +470,51 @@ export default function ChatScreen({ route, navigation }) {
       return;
     }
 
+    if (offlineMode) {
+      handleOfflineSend(trimmedPrompt);
+      return;
+    }
+
+    handleOnlineSend(trimmedPrompt);
+  }
+
+  // ─── OFFLINE path ─────────────────────────────────────────────────────────
+
+  function handleOfflineSend(trimmedPrompt) {
     const now = Date.now();
     const userId = `${now}-user`;
     const assistantId = `${now}-assistant`;
+
+    setError("");
+    setPrompt("");
+    setLoading(true);
+    setSuggestions([]);
+    setMessages((prev) => [
+      ...prev,
+      { id: userId, role: "user", content: trimmedPrompt, offline: true },
+      { id: assistantId, role: "assistant", content: "", offline: true },
+    ]);
+
+    const result = offlineMatch(trimmedPrompt);
+
+    abortStreamRef.current?.();
+    abortStreamRef.current = streamOfflineResponse(result.text, {
+      onChunk: (chunk) => {
+        updateMessage(assistantId, (msg) => ({
+          content: `${msg.content || ""}${chunk}`,
+        }));
+      },
+      onDone: () => {
+        setLoading(false);
+        setSuggestions(result.suggestions || []);
+        abortStreamRef.current = null;
+      },
+    });
+  }
+
+  // ─── ONLINE path ──────────────────────────────────────────────────────────
+
+  function handleOnlineSend(trimmedPrompt) {
 
     setError("");
     setPrompt("");
@@ -550,12 +598,25 @@ export default function ChatScreen({ route, navigation }) {
     });
   }
 
+  function handleModeToggle() {
+    abortStreamRef.current?.();
+    abortStreamRef.current = null;
+    setOfflineMode((prev) => !prev);
+    setMessages([]);
+    setSuggestions([]);
+    setError("");
+    setLoading(false);
+    setPrompt("");
+    setConversationId("");
+  }
+
   function handleNewChat() {
     abortStreamRef.current?.();
     abortStreamRef.current = null;
     setToolsOpen(false);
     setConversationId("");
     setMessages([]);
+    setSuggestions([]);
     setError("");
     setLoading(false);
     setPrompt("");
@@ -567,21 +628,42 @@ export default function ChatScreen({ route, navigation }) {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={Platform.OS === "ios" ? headerHeight : 20}
     >
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 14) }]}>
         <Pressable onPress={() => navigation?.goBack()} style={styles.backButton}>
-          <Feather name="chevron-left" size={28} color="#4B5563" />
+          <Feather name="arrow-left" size={24} color="#374151" />
         </Pressable>
         <View style={styles.headerTextWrap}>
-          <Text style={styles.title}>ArogyaGram AI</Text>
+          <Text style={styles.title}>{offlineMode ? "Offline Assistant" : "ArogyaGram AI"}</Text>
           <View style={styles.onlineStatus}>
-            <View style={styles.onlineDot} />
-            <Text style={styles.subtitle}>Online</Text>
+            <View style={[styles.onlineDot, offlineMode && styles.offlineDot]} />
+            <Text style={[styles.subtitle, offlineMode && styles.offlineSubtitle]}>
+              {offlineMode ? "No internet needed" : "Online"}
+            </Text>
           </View>
         </View>
+
+        {/* Mode Toggle Pill */}
+        <Pressable style={[styles.modePill, offlineMode && styles.modePillOffline]} onPress={handleModeToggle}>
+          <Feather name={offlineMode ? "wifi-off" : "wifi"} size={14} color={offlineMode ? "#d97706" : "#0d9488"} />
+          <Text style={[styles.modePillText, offlineMode && styles.modePillTextOffline]}>
+            {offlineMode ? "Offline" : "Online"}
+          </Text>
+        </Pressable>
+
         <Pressable style={styles.headerAvatar} onPress={handleNewChat}>
-          <Feather name="user" size={20} color="#5DC1B9" />
+          <Feather name="refresh-cw" size={18} color={offlineMode ? "#d97706" : "#0d9488"} />
         </Pressable>
       </View>
+
+      {/* Offline mode banner */}
+      {offlineMode && (
+        <View style={styles.offlineBanner}>
+          <Feather name="wifi-off" size={14} color="#92400e" />
+          <Text style={styles.offlineBannerText}>
+            Offline Mode — Answers from local health knowledge base
+          </Text>
+        </View>
+      )}
 
       <FlatList
         ref={listRef}
@@ -593,7 +675,9 @@ export default function ChatScreen({ route, navigation }) {
         renderItem={({ item }) => <MessageBubble message={item} onOpenUrl={handleOpenUrl} />}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyTitle}>TAP A SYMPTOM TO BEGIN</Text>
+            <Text style={styles.emptyTitle}>
+              {offlineMode ? "ASK YOUR HEALTH QUESTION" : "TAP A SYMPTOM TO BEGIN"}
+            </Text>
             <View style={styles.symptomsGrid}>
               {quickSymptoms.map((symptom) => (
                 <Pressable
@@ -619,11 +703,33 @@ export default function ChatScreen({ route, navigation }) {
         }
       />
 
+      {/* Suggest chips shown after offline reply */}
+      {offlineMode && suggestions.length > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.suggestionsRow}
+          contentContainerStyle={styles.suggestionsContent}
+        >
+          {suggestions.map((s, i) => (
+            <Pressable
+              key={i}
+              style={styles.suggestionChip}
+              onPress={() => {
+                setPrompt(s);
+              }}
+            >
+              <Text style={styles.suggestionChipText}>{s}</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      )}
+
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
       {toolsOpen ? <Pressable style={styles.toolsBackdrop} onPress={() => setToolsOpen(false)} /> : null}
 
-      <View style={styles.composerRow}>
+      <View style={[styles.composerRow, offlineMode && styles.composerRowOffline]}>
         {toolsOpen ? (
           <View style={styles.toolsMenu}>
             <View style={styles.toolItem}>
@@ -637,22 +743,29 @@ export default function ChatScreen({ route, navigation }) {
           </View>
         ) : null}
 
-        <View style={styles.inputContainer}>
+        <View style={[styles.inputContainer, offlineMode && styles.inputContainerOffline]}>
+          {!offlineMode && (
+            <Pressable style={styles.toolsIconButton} onPress={() => setToolsOpen((prev) => !prev)}>
+              <Feather name="plus" size={24} color="#5DC1B9" />
+            </Pressable>
+          )}
           <TextInput
             style={styles.input}
             value={prompt}
             onChangeText={setPrompt}
-            placeholder="Type other symptoms..."
+            placeholder={offlineMode ? "Type symptoms in Hindi or English..." : "Type other symptoms..."}
             placeholderTextColor="#9ca3af"
             multiline
             maxLength={4000}
           />
           <Pressable
-            style={[styles.sendButton, (loading || !prompt.trim()) && styles.disabledButton]}
+            style={[styles.sendButton, offlineMode && styles.sendButtonOffline, (loading || !prompt.trim()) && styles.disabledButton]}
             onPress={handleSend}
             disabled={loading || !prompt.trim()}
           >
-            <Feather name="send" size={18} color="#ffffff" style={styles.sendIcon} />
+            {loading && offlineMode
+              ? <Feather name="loader" size={18} color="#ffffff" />
+              : <Feather name="send" size={18} color="#ffffff" style={styles.sendIcon} />}
           </Pressable>
         </View>
       </View>
@@ -667,23 +780,27 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 10,
+    paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#f3f4f6",
     flexDirection: "row",
     alignItems: "center",
+    backgroundColor: "#ffffff",
+    zIndex: 10,
   },
   backButton: {
-    paddingRight: 12,
+    paddingRight: 16,
+    paddingVertical: 8,
   },
   headerTextWrap: {
     flex: 1,
+    justifyContent: "center",
   },
   title: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "700",
-    color: "#111827",
+    color: "#1f2937",
+    letterSpacing: -0.3,
   },
   onlineStatus: {
     flexDirection: "row",
@@ -702,14 +819,99 @@ const styles = StyleSheet.create({
     color: "#22c55e",
   },
   headerAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#ccfbf1",
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#f0fdfa",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "#a7f3d0",
+    borderColor: "#ccfbf1",
+    marginLeft: 4,
+  },
+  modePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#f0fdfa",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#ccfbf1",
+    marginRight: 4,
+  },
+  modePillOffline: {
+    backgroundColor: "#fffbeb",
+    borderColor: "#fde68a",
+  },
+  modePillText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#0d9488",
+  },
+  modePillTextOffline: {
+    color: "#d97706",
+  },
+  offlineDot: {
+    backgroundColor: "#d97706",
+  },
+  offlineSubtitle: {
+    color: "#d97706",
+  },
+  offlineBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#fef3c7",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#fde68a",
+  },
+  offlineBannerText: {
+    fontSize: 12,
+    color: "#92400e",
+    fontWeight: "500",
+    flex: 1,
+  },
+  suggestionsRow: {
+    maxHeight: 46,
+    borderTopWidth: 1,
+    borderTopColor: "#f3f4f6",
+    backgroundColor: "#fafafa",
+  },
+  suggestionsContent: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 8,
+    flexDirection: "row",
+  },
+  suggestionChip: {
+    backgroundColor: "#fef3c7",
+    borderWidth: 1,
+    borderColor: "#fde68a",
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+  },
+  suggestionChipText: {
+    fontSize: 13,
+    color: "#92400e",
+    fontWeight: "600",
+  },
+  composerRowOffline: {
+    backgroundColor: "#fffbeb",
+    borderTopColor: "#fde68a",
+    borderTopWidth: 1,
+  },
+  inputContainerOffline: {
+    backgroundColor: "#fef3c7",
+    borderWidth: 1,
+    borderColor: "#fde68a",
+  },
+  sendButtonOffline: {
+    backgroundColor: "#d97706",
   },
   messagesContent: {
     padding: 16,
@@ -1005,6 +1207,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 4,
   },
+  toolsIconButton: {
+    paddingLeft: 8,
+    paddingRight: 4,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   toolsBackdrop: {
     ...StyleSheet.absoluteFillObject,
     top: 0,
@@ -1041,7 +1249,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     paddingVertical: 12,
     minHeight: 44,
     maxHeight: 120,

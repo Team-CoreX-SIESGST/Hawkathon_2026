@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useMemo, useState } from "react";
+import { SafeAreaView } from "react-native-safe-area-context";
 import {
-  SafeAreaView,
   StyleSheet,
   Text,
   View,
@@ -178,7 +178,7 @@ export default function AuthFormScreen({ navigation, route }) {
       if (role === "patient") {
         nextScreen = "PatientDashboardMock";
       } else if (role === "doctor") {
-        nextScreen = "ConsultantDashboardMock";
+        nextScreen = "DoctorProfile";
       }
 
       navigation.reset({ index: 0, routes: [{ name: nextScreen }] });

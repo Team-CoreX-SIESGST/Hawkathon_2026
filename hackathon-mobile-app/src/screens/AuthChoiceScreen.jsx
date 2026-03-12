@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
-import { SafeAreaView, StyleSheet, Text, View, Pressable } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { StyleSheet, Text, View, Pressable } from "react-native";
 
 const ROLE_LABELS = {
   patient: "Patient",

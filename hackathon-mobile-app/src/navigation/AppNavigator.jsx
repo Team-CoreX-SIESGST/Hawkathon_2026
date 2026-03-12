@@ -11,6 +11,7 @@ import AuthChoiceScreen from "../screens/AuthChoiceScreen";
 import AuthFormScreen from "../screens/AuthFormScreen";
 import PatientDashboardMock from "../screens/PatientDashboardMock";
 import ConsultantDashboardMock from "../screens/ConsultantDashboardMock";
+import DoctorProfilePage from "../screens/DoctorProfilePage";
 
 const Stack = createNativeStackNavigator();
 
@@ -39,7 +40,11 @@ export default function AppNavigator() {
           options={{ headerShown: false }}
         />
         <Stack.Screen name="Home" component={HomeScreen} />
-        <Stack.Screen name="Chat" component={ChatScreen} />
+        <Stack.Screen
+          name="Chat"
+          component={ChatScreen}
+          options={{ headerShown: false }}
+        />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
         <Stack.Screen
@@ -50,6 +55,11 @@ export default function AppNavigator() {
         <Stack.Screen
           name="ConsultantDashboardMock"
           component={ConsultantDashboardMock}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="DoctorProfile"
+          component={DoctorProfilePage}
           options={{ headerShown: false }}
         />
       </Stack.Navigator>
