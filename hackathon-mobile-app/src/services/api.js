@@ -1,8 +1,8 @@
-const API_BASE_URL = (process.env.EXPO_PUBLIC_API_BASE_URL || "http://10.0.16.63:5001").replace(
+const API_BASE_URL = (process.env.EXPO_PUBLIC_API_BASE_URL || "https://hawkathon-2026-five.vercel.app/").replace(
   /\/+$/,
   ""
 );
-const API_BASE_URL1 = (process.env.EXPO_PUBLIC_API_BASE_URL || "http://10.0.16.63:5002").replace(
+const API_BASE_URL1 = (process.env.EXPO_PUBLIC_API_BASE_URL || "https://hawkathon-2026.vercel.app/").replace(
   /\/+$/,
   ""
 );
@@ -243,10 +243,8 @@ export function streamChatMessage({
 
 export const patientRegister = (payload) =>
   request("/patient/register", "POST", payload);
-export const patientLogin = (payload) => {
-  console.log('fwoeihfoi')
+export const patientLogin = (payload) =>
   request("/patient/login", "POST", payload);
-}
 export const patientUpdate = (token, payload) =>
   request("/patient/update", "PUT", payload, token);
 export const patientMe = (token) => request("/patient/me", "GET", null, token);

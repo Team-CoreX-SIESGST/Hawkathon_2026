@@ -1,11 +1,11 @@
 import React from "react";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import {
   StyleSheet,
   Text,
   View,
   Image,
-  SafeAreaView,
   ScrollView,
   TouchableOpacity,
   Alert,
