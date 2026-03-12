@@ -292,8 +292,13 @@ export const doctorAppointments = (token) =>
   request("/doctor/appointments", "GET", null, token);
 export const doctorUpdateAppointmentStatus = (token, id, status) =>
   request(`/doctor/appointments/${id}/status`, "PATCH", { status }, token);
-export const doctorStartCall = (token, id) =>
-  request(`/doctor/appointments/${id}/start-call`, "POST", null, token);
+export const doctorStartCall = (token, id, callType) =>
+  request(
+    `/doctor/appointments/${id}/start-call`,
+    "POST",
+    callType ? { callType } : null,
+    token
+  );
 export const doctorAddSummary = (token, id, payload) =>
   request(`/doctor/appointments/${id}/summary`, "POST", payload, token);
 export const doctorNotifications = (token) =>
