@@ -1,2 +1,4 @@
 // Initialize and export database models here
-// export * from './User.js';
+export { default as User } from './User.js';
+export { default as Patient } from './Patient.js';
+export { default as Doctor } from './Doctor.js';
