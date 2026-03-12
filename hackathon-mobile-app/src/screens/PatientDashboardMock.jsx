@@ -31,9 +31,10 @@ const bottomNavItems = [
 
 export default function PatientDashboardMock() {
   const navigation = useNavigation();
-  const { user, token } = useContext(AuthContext);
+  const { user, token, signOut } = useContext(AuthContext);
   const [profile, setProfile] = useState(null);
   const [doctors, setDoctors] = useState([]);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -78,6 +79,17 @@ export default function PatientDashboardMock() {
     gender === "F"
       ? require("../../assets/female-icon.png")
       : require("../../assets/male-icon.png");
+
+  const handleLogout = () => {
+    setMenuOpen(false);
+    signOut();
+    navigation.reset({ index: 0, routes: [{ name: "RoleSelection" }] });
+  };
+
+  const handleOpenProfile = () => {
+    setMenuOpen(false);
+    navigation.navigate("PatientProfile");
+  };
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
@@ -86,17 +98,39 @@ export default function PatientDashboardMock() {
             <Text style={styles.greetingSmall}>Good Morning,</Text>
             <Text style={styles.greeting}>{`Hello, ${firstName}`}</Text>
           </View>
-          <TouchableOpacity
-            style={styles.avatarRing}
-            activeOpacity={0.7}
-            onPress={() => Alert.alert("Profile", "Profile avatar tapped")}
-          >
-            <Image
-              source={avatarSource}
-              style={styles.headerAvatar}
-              resizeMode="contain"
-            />
-          </TouchableOpacity>
+          <View style={styles.avatarMenuWrap}>
+            <TouchableOpacity
+              style={styles.avatarRing}
+              activeOpacity={0.7}
+              onPress={() => setMenuOpen((prev) => !prev)}
+            >
+              <Image
+                source={avatarSource}
+                style={styles.headerAvatar}
+                resizeMode="contain"
+              />
+            </TouchableOpacity>
+            {menuOpen && (
+              <View style={styles.avatarMenu}>
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  activeOpacity={0.7}
+                  onPress={handleOpenProfile}
+                >
+                  <Text style={styles.menuText}>View Profile</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.menuItem, styles.menuItemDanger]}
+                  activeOpacity={0.7}
+                  onPress={handleLogout}
+                >
+                  <Text style={[styles.menuText, styles.menuTextDanger]}>
+                    Logout
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
         </View>
 
         <Text style={styles.sectionTitle}>Quick Actions</Text>
@@ -237,6 +271,41 @@ const styles = StyleSheet.create({
   headerAvatar: {
     width: 34,
     height: 34,
+  },
+  avatarMenuWrap: {
+    alignItems: "flex-end",
+  },
+  avatarMenu: {
+    position: "absolute",
+    top: 60,
+    right: 0,
+    width: 150,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#E6F2F0",
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 6,
+    zIndex: 10,
+  },
+  menuItem: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  menuItemDanger: {
+    borderTopWidth: 1,
+    borderTopColor: "#E5E7EB",
+  },
+  menuText: {
+    fontSize: 14,
+    color: "#1F2937",
+    fontWeight: "600",
+  },
+  menuTextDanger: {
+    color: "#DC2626",
   },
   sectionTitle: {
     fontSize: 20,
