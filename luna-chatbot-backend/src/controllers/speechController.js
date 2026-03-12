@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-import { transcribeAudio } from '../config/openai.js';
+// import { transcribeAudio } from '../config/openai.js';
 import { deleteFile } from '../utils/fileUpload.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -15,28 +15,28 @@ const __dirname = dirname(__filename);
  */
 export const convertSpeechToText = async (req, res) => {
   if (!req.file) {
-    return res.status(400).json({ 
+    return res.status(400).json({
       success: false,
-      error: 'No audio file provided' 
+      error: 'No audio file provided'
     });
   }
 
   const audioPath = req.file.path;
   console.log('File uploaded to:', audioPath);
-  
+
   try {
     // Verify file exists and is not empty
     if (!fs.existsSync(audioPath)) {
       throw new Error(`Audio file not found at path: ${audioPath}`);
     }
-    
+
     const stats = fs.statSync(audioPath);
     console.log('File stats:', {
       size: stats.size,
       modified: stats.mtime,
       isFile: stats.isFile()
     });
-    
+
     if (stats.size === 0) {
       throw new Error('Uploaded audio file is empty');
     }
@@ -50,16 +50,16 @@ export const convertSpeechToText = async (req, res) => {
 
     // Transcribe the audio using OpenAI Whisper API
     const result = await transcribeAudio(audioStream);
-    
+
     if (!result.success) {
       console.error('Transcription failed:', result.error);
       throw new Error(result.error || 'Failed to transcribe audio');
     }
 
     console.log('Transcription successful');
-    return res.json({ 
-      success: true, 
-      text: result.text 
+    return res.json({
+      success: true,
+      text: result.text
     });
   } catch (error) {
     console.error('Error in speech-to-text conversion:', {
@@ -71,9 +71,9 @@ export const convertSpeechToText = async (req, res) => {
       filePath: audioPath,
       fileExists: fs.existsSync(audioPath)
     });
-    
-    return res.status(500).json({ 
-      success: false, 
+
+    return res.status(500).json({
+      success: false,
       error: 'Failed to process speech-to-text',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
