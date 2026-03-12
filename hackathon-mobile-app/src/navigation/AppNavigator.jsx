@@ -19,6 +19,7 @@ import DoctorAppointmentsScreen from "../screens/DoctorAppointmentsScreen";
 import CallScreen from "../screens/CallScreen";
 import DoctorNotificationsScreen from "../screens/DoctorNotificationsScreen";
 import DoctorPastPatientsScreen from "../screens/DoctorPastPatientsScreen";
+import VideoCallScreen from "../screens/VideoCallScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -102,6 +103,11 @@ export default function AppNavigator() {
         <Stack.Screen
           name="DoctorPastPatients"
           component={DoctorPastPatientsScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="VideoCall"
+          component={VideoCallScreen}
           options={{ headerShown: false }}
         />
       </Stack.Navigator>

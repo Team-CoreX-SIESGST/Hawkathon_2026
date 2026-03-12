@@ -6,6 +6,7 @@ import {
   ScrollView,
   TextInput,
   Pressable,
+  Modal,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { AuthContext } from "../context/AuthContext";
@@ -18,6 +19,7 @@ import {
   patientNotifications,
   patientReadNotification,
 } from "../services/api";
+import { createSocket } from "../services/socket";
 
 export default function PatientConsultScreen({ navigation }) {
   const { token, user } = useContext(AuthContext);
@@ -35,6 +37,7 @@ export default function PatientConsultScreen({ navigation }) {
   const [error, setError] = useState("");
   const [notifications, setNotifications] = useState([]);
   const [slotsOpen, setSlotsOpen] = useState(false);
+  const [incomingCall, setIncomingCall] = useState(null);
 
   const coords = useMemo(() => user?.locationCoordinates, [user]);
 
@@ -73,6 +76,22 @@ export default function PatientConsultScreen({ navigation }) {
     loadAppointments();
     loadNotifications();
   }, []);
+
+  useEffect(() => {
+    if (!user?._id) return;
+    const socket = createSocket();
+    socket.emit("register-user", {
+      userId: user._id,
+      role: "patient",
+      name: user?.abha_profile?.name || user?.name,
+    });
+    socket.on("incoming-call", (payload) => {
+      setIncomingCall(payload);
+    });
+    return () => {
+      socket.disconnect();
+    };
+  }, [user?._id]);
 
   const handleBook = async () => {
     if (!selectedDoctor) {
@@ -368,6 +387,45 @@ export default function PatientConsultScreen({ navigation }) {
           </View>
         ))
       )}
+
+      <Modal visible={!!incomingCall} transparent animationType="slide">
+        <View style={styles.callOverlay}>
+          <View style={styles.callCard}>
+            <Text style={styles.callTitle}>
+              Incoming{" "}
+              {incomingCall?.callType === "AUDIO_CALL" ? "Audio" : "Video"} Call
+            </Text>
+            <Text style={styles.callSubtitle}>
+              {incomingCall?.fromName || "Doctor"} is calling you
+            </Text>
+            <View style={styles.callActions}>
+              <Pressable
+                style={[styles.callActionButton, styles.callDecline]}
+                onPress={() => setIncomingCall(null)}
+              >
+                <Text style={styles.callDeclineText}>Decline</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.callActionButton, styles.callAccept]}
+                onPress={() => {
+                  const roomId = incomingCall?.roomId;
+                  setIncomingCall(null);
+                  if (roomId) {
+                    navigation.navigate("VideoCall", {
+                      roomId,
+                      userRole: "patient",
+                      userName: user?.abha_profile?.name || user?.name,
+                      remoteName: incomingCall?.fromName,
+                    });
+                  }
+                }}
+              >
+                <Text style={styles.callAcceptText}>Accept</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -600,6 +658,53 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   callButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+  },
+  callOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(15,23,42,0.7)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+  },
+  callCard: {
+    width: "100%",
+    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
+    padding: 20,
+  },
+  callTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  callSubtitle: {
+    marginTop: 6,
+    color: "#64748B",
+  },
+  callActions: {
+    marginTop: 16,
+    flexDirection: "row",
+    gap: 12,
+  },
+  callActionButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  callDecline: {
+    backgroundColor: "#FEE2E2",
+  },
+  callDeclineText: {
+    color: "#B91C1C",
+    fontWeight: "700",
+  },
+  callAccept: {
+    backgroundColor: "#0F172A",
+  },
+  callAcceptText: {
     color: "#FFFFFF",
     fontWeight: "700",
   },

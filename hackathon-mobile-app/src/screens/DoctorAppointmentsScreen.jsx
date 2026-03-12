@@ -16,7 +16,7 @@ import {
 } from "../services/api";
 
 export default function DoctorAppointmentsScreen({ navigation }) {
-  const { token } = useContext(AuthContext);
+  const { token, user } = useContext(AuthContext);
   const [appointments, setAppointments] = useState([]);
   const [error, setError] = useState("");
   const [transcripts, setTranscripts] = useState({});
@@ -48,10 +48,12 @@ export default function DoctorAppointmentsScreen({ navigation }) {
 
   const startCall = async (appointment, callType) => {
     try {
-      const res = await doctorStartCall(token, appointment._id, callType);
-      navigation.navigate("CallScreen", {
-        url: res.videoLink,
-        title: callType === "AUDIO_CALL" ? "Audio Call" : "Video Call",
+      await doctorStartCall(token, appointment._id, callType);
+      navigation.navigate("VideoCall", {
+        roomId: appointment._id,
+        userRole: "doctor",
+        userName: user?.name || "Doctor",
+        remoteName: appointment?.patient?.abha_profile?.name || "Patient",
       });
       await load();
     } catch (err) {

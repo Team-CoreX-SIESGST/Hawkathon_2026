@@ -219,6 +219,21 @@ export const startDoctorCall = async (req, res) => {
             data: { videoLink: appointment.videoLink }
         });
 
+        const io = req.app.get('io');
+        const userSocketMap = req.app.get('userSocketMap');
+        if (io && userSocketMap) {
+            const patientSocketId = userSocketMap.get(String(appointment.patient));
+            if (patientSocketId) {
+                io.to(patientSocketId).emit('incoming-call', {
+                    roomId: String(appointment._id),
+                    appointmentId: String(appointment._id),
+                    fromRole: 'doctor',
+                    fromName: req.user?.name || 'Doctor',
+                    callType: appointment.appointmentType
+                });
+            }
+        }
+
         res.json({ videoLink: appointment.videoLink, status: appointment.status });
     } catch (error) {
         res.status(500).json({ message: error.message });
