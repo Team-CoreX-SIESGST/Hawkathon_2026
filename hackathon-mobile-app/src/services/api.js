@@ -2,7 +2,7 @@ const API_BASE_URL = (process.env.EXPO_PUBLIC_API_BASE_URL || "http://10.0.16.63
   /\/+$/,
   ""
 );
-const API_BASE_URL1 = (process.env.EXPO_PUBLIC_API_BASE_URL || "http://10.0.16.63:5002").replace(
+const API_BASE_URL1 = (process.env.EXPO_PUBLIC_API_BASE_URL_1 || "http://10.0.16.63:5002").replace(
   /\/+$/,
   ""
 );

@@ -151,8 +151,7 @@ const seedAccounts = async () => {
         );
     }
 
-    let createdDoctors = 0;
-    let skippedDoctors = 0;
+    const doctorOps = [];
     for (let index = 0; index < doctorProfiles.length; index += 1) {
         const doctorProfile = doctorProfiles[index];
         const town = townSequence[index] || 'Nabha';
@@ -169,17 +168,16 @@ const seedAccounts = async () => {
             locationCoordinates
         };
 
-        const exists = await DoctorAccount.findOne({ username: doctor.username });
-        if (exists) {
-            skippedDoctors += 1;
-            continue;
-        }
-        await DoctorAccount.create(doctor);
-        createdDoctors += 1;
+        doctorOps.push({
+            updateOne: {
+                filter: { username: doctor.username },
+                update: { $setOnInsert: doctor },
+                upsert: true
+            }
+        });
     }
 
-    let createdAsha = 0;
-    let skippedAsha = 0;
+    const ashaOps = [];
     for (let index = 0; index < ashaProfiles.length; index += 1) {
         const ashaProfile = ashaProfiles[index];
         const town = townSequence[index] || 'Nabha';
@@ -196,17 +194,28 @@ const seedAccounts = async () => {
             locationCoordinates
         };
 
-        const exists = await AshaWorkerAccount.findOne({ username: asha.username });
-        if (exists) {
-            skippedAsha += 1;
-            continue;
-        }
-        await AshaWorkerAccount.create(asha);
-        createdAsha += 1;
+        ashaOps.push({
+            updateOne: {
+                filter: { username: asha.username },
+                update: { $setOnInsert: asha },
+                upsert: true
+            }
+        });
     }
 
-    console.log(`Doctors created: ${createdDoctors}, skipped: ${skippedDoctors}`);
-    console.log(`ASHA workers created: ${createdAsha}, skipped: ${skippedAsha}`);
+    if (doctorOps.length > 0) {
+        const doctorResult = await DoctorAccount.bulkWrite(doctorOps, { ordered: false });
+        console.log(
+            `Doctors upserted: ${doctorResult.upsertedCount}, matched: ${doctorResult.matchedCount}`
+        );
+    }
+
+    if (ashaOps.length > 0) {
+        const ashaResult = await AshaWorkerAccount.bulkWrite(ashaOps, { ordered: false });
+        console.log(
+            `ASHA upserted: ${ashaResult.upsertedCount}, matched: ${ashaResult.matchedCount}`
+        );
+    }
 };
 
 seedAccounts()
