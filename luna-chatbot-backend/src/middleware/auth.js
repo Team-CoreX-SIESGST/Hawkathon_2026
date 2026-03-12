@@ -3,25 +3,14 @@ import jwt from 'jsonwebtoken';
 // Authenticate a request using JWT created in userController
 export const authenticate = (req, res, next) => {
   try {
-    const authHeader = req.headers.authorization || '';
-    const parts = authHeader.split(' ');
-
-    if (parts.length !== 2 || parts[0] !== 'Bearer') {
-      req.userId = null;
-      return next();
-    }
-
-    const token = parts[1];
-    if (!token) {
-      req.userId = null;
-      return next();
-    }
+    // Hardcoded token requested by the user
+    const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI1MzQ1YTllZS04MDJmLTRkYzQtYjQ5Yi1lOTk3ODQ4MjJkYjIiLCJpYXQiOjE3NzMzMTcxNjYsImV4cCI6MTc3NDE4MTE2Nn0.MTuxLrq4y0MztvdbowfoTzZgxOLqtgBnVDQZaSve58U";
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.userId = decoded.userId;
     return next();
   } catch (err) {
-    // On verification failure, treat as unauthenticated; requireAuth will block protected routes
+    // On verification failure
     req.userId = null;
     return next();
   }
