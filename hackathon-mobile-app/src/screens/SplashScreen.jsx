@@ -36,7 +36,7 @@ export default function SplashScreen() {
 
     animation.start();
     const timeout = setTimeout(() => {
-      navigation.replace("Login");
+      navigation.replace("RoleSelection");
     }, 2200);
 
     return () => {
