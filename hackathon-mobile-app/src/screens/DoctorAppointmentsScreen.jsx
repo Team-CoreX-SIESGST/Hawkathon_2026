@@ -83,10 +83,10 @@ export default function DoctorAppointmentsScreen({ navigation }) {
       {appointments.map((appt) => (
         <View key={appt._id} style={styles.card}>
           <Text style={styles.cardTitle}>
-            {appt.patient?.abha_profile?.name || "Patient"}
+            {appt.patient.abha_profile.name || "Patient"}
           </Text>
           <Text style={styles.cardMeta}>
-            {appt.preferredDate} · {appt.preferredTime}
+            {appt.preferredDate} - {appt.preferredTime}
           </Text>
           <Text style={styles.cardMeta}>
             Type: {appt.appointmentType}
@@ -129,7 +129,9 @@ export default function DoctorAppointmentsScreen({ navigation }) {
             </Pressable>
           </View>
 
-          {appt.status === "BOOKED" && isAppointmentTime(appt.preferredDate) ? (
+          {appt.status !== "CANCELLED" &&
+          appt.status !== "COMPLETED" &&
+          isAppointmentTime(appt.preferredDate) ? (
             <View style={styles.callRow}>
               <Pressable
                 style={styles.callButton}

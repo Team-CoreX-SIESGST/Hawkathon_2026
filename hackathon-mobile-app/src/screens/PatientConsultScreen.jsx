@@ -158,7 +158,11 @@ export default function PatientConsultScreen({ navigation }) {
               styles.doctorCard,
               selectedDoctor?._id === doctor._id && styles.doctorCardActive,
             ]}
-            onPress={() => setSelectedDoctor(doctor)}
+            onPress={() => {
+              setSelectedDoctor(doctor);
+              setPreferredTime("");
+              setSlotsOpen(false);
+            }}
           >
             <View>
               <Text style={styles.doctorName}>{doctor.name}</Text>
@@ -252,13 +256,6 @@ export default function PatientConsultScreen({ navigation }) {
           }}
         />
       ) : null}
-      <TextInput
-        style={styles.input}
-        placeholder="Preferred time (e.g. 10:30 AM)"
-        value={preferredTime}
-        onChangeText={setPreferredTime}
-      />
-
       {selectedDoctor?.availableSlots?.length ? (
         <>
           <Text style={styles.sectionTitle}>Available Slots</Text>
@@ -287,7 +284,14 @@ export default function PatientConsultScreen({ navigation }) {
             </View>
           ) : null}
         </>
-      ) : null}
+      ) : (
+        <TextInput
+          style={styles.input}
+          placeholder="Preferred time (e.g. 10:30 AM)"
+          value={preferredTime}
+          onChangeText={setPreferredTime}
+        />
+      )}
 
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
@@ -474,32 +478,6 @@ const styles = StyleSheet.create({
   },
   dateButtonText: {
     color: "#0F172A",
-    fontWeight: "700",
-  },
-  slotRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginTop: 8,
-  },
-  slotChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    backgroundColor: "#FFFFFF",
-  },
-  slotChipActive: {
-    backgroundColor: "#5DC1B9",
-    borderColor: "#5DC1B9",
-  },
-  slotText: {
-    color: "#475569",
-    fontSize: 12,
-  },
-  slotTextActive: {
-    color: "#FFFFFF",
     fontWeight: "700",
   },
   dropdown: {
