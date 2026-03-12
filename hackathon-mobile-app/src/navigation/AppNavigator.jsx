@@ -39,7 +39,11 @@ export default function AppNavigator() {
           options={{ headerShown: false }}
         />
         <Stack.Screen name="Home" component={HomeScreen} />
-        <Stack.Screen name="Chat" component={ChatScreen} />
+        <Stack.Screen
+          name="Chat"
+          component={ChatScreen}
+          options={{ headerShown: false }}
+        />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
         <Stack.Screen
