@@ -1,10 +1,8 @@
-import jwt from 'jsonwebtoken';
 import Patient from '../models/Patient.js';
+import { signToken } from '../utils/jwt.js';
 
 const generateToken = (id, role) => {
-    return jwt.sign({ id, role }, process.env.JWT_SECRET || 'fallback_secret_key_123', {
-        expiresIn: '30d'
-    });
+    return signToken({ id, role }, { expiresIn: '30d' });
 };
 
 const parseLocation = (locationCoordinates, latitude, longitude) => {
@@ -87,7 +85,7 @@ export const loginPatient = async (req, res) => {
         if (!patient) {
             return res.status(401).json({ message: 'Invalid ABHA ID' });
         }
-
+console.log('foiwehofhewo')
         res.json({
             _id: patient._id,
             name: patient?.abha_profile?.name,

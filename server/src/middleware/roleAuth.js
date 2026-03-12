@@ -1,12 +1,11 @@
-import jwt from 'jsonwebtoken';
 import Patient from '../models/Patient.js';
 import DoctorAccount from '../models/DoctorAccount.js';
 import AshaWorkerAccount from '../models/AshaWorkerAccount.js';
-
-const tokenSecret = process.env.JWT_SECRET || 'fallback_secret_key_123';
+import { verifyToken } from '../utils/jwt.js';
 
 const buildProtect = (Model, role) => async (req, res, next) => {
     let token;
+    // console.log(req.headers,"foiewhoifh")
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
         token = req.headers.authorization.split(' ')[1];
     }
@@ -16,7 +15,7 @@ const buildProtect = (Model, role) => async (req, res, next) => {
     }
 
     try {
-        const decoded = jwt.verify(token, tokenSecret);
+        const decoded = verifyToken(token);
         if (decoded.role !== role) {
             return res.status(403).json({ message: 'Not authorized for this role' });
         }
