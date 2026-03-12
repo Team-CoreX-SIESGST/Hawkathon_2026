@@ -15,7 +15,8 @@ const doctorAccountSchema = new mongoose.Schema(
         username: { type: String, required: true, unique: true, index: true, trim: true, lowercase: true },
         password: { type: String, required: true },
         hospitalName: { type: String, required: true, trim: true },
-        locationCoordinates: { type: locationSchema, required: true }
+        locationCoordinates: { type: locationSchema, required: true },
+        availableSlots: [{ type: String, trim: true }]
     },
     { timestamps: true }
 );

@@ -7,12 +7,14 @@ import {
   TextInput,
   Pressable,
 } from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { AuthContext } from "../context/AuthContext";
 import {
   doctorNearby,
   createAppointment,
   getMyAppointments,
   cancelAppointment,
+  structureAppointment,
 } from "../services/api";
 
 export default function PatientConsultScreen() {
@@ -22,8 +24,12 @@ export default function PatientConsultScreen() {
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [problem, setProblem] = useState("");
   const [symptoms, setSymptoms] = useState("");
+  const [description, setDescription] = useState("");
   const [preferredDate, setPreferredDate] = useState("");
   const [preferredTime, setPreferredTime] = useState("");
+  const [appointmentType, setAppointmentType] = useState("OFFLINE");
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [urgencyScore, setUrgencyScore] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -70,19 +76,46 @@ export default function PatientConsultScreen() {
         doctorId: selectedDoctor._id,
         problem,
         symptoms,
+        description,
         preferredDate,
         preferredTime,
+        appointmentType,
       });
       setProblem("");
       setSymptoms("");
+      setDescription("");
       setPreferredDate("");
       setPreferredTime("");
       setSelectedDoctor(null);
+      setUrgencyScore(null);
       await loadAppointments();
     } catch (err) {
       setError(err.message || "Unable to book appointment");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAiStructure = async () => {
+    if (!problem && !symptoms && !description) {
+      setError("Enter problem or symptoms first");
+      return;
+    }
+    setError("");
+    try {
+      const ai = await structureAppointment(token, {
+        problem,
+        symptoms,
+        description,
+      });
+      if (ai?.structuredQuery) {
+        setDescription(ai.structuredQuery);
+      }
+      if (ai?.urgencyScore !== undefined) {
+        setUrgencyScore(ai.urgencyScore);
+      }
+    } catch (err) {
+      setError(err.message || "AI structuring failed");
     }
   };
 
@@ -125,10 +158,38 @@ export default function PatientConsultScreen() {
               <Text style={styles.doctorMeta}>
                 {doctor.distanceKm} km away
               </Text>
+              {doctor.availableSlots?.length ? (
+                <Text style={styles.doctorMeta}>
+                  Slots: {doctor.availableSlots.join(", ")}
+                </Text>
+              ) : null}
             </View>
           </Pressable>
         ))
       )}
+
+      <Text style={styles.sectionTitle}>Appointment Type</Text>
+      <View style={styles.toggleRow}>
+        {["OFFLINE", "VIDEO_CALL"].map((type) => (
+          <Pressable
+            key={type}
+            style={[
+              styles.toggleButton,
+              appointmentType === type && styles.toggleButtonActive,
+            ]}
+            onPress={() => setAppointmentType(type)}
+          >
+            <Text
+              style={[
+                styles.toggleText,
+                appointmentType === type && styles.toggleTextActive,
+              ]}
+            >
+              {type === "OFFLINE" ? "Offline" : "Video Call"}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
 
       <Text style={styles.sectionTitle}>Book Appointment</Text>
       <TextInput
@@ -143,18 +204,80 @@ export default function PatientConsultScreen() {
         value={symptoms}
         onChangeText={setSymptoms}
       />
+      <View style={styles.aiRow}>
+        <TextInput
+          style={[styles.input, styles.aiInput]}
+          placeholder="Description (tap AI to structure)"
+          value={description}
+          onChangeText={setDescription}
+          multiline
+        />
+        <Pressable style={styles.aiButton} onPress={handleAiStructure}>
+          <Text style={styles.aiButtonText}>AI</Text>
+        </Pressable>
+      </View>
+
+      {urgencyScore !== null ? (
+        <Text style={styles.urgencyText}>
+          Urgency Score: {urgencyScore}/100
+        </Text>
+      ) : null}
+
       <TextInput
         style={styles.input}
         placeholder="Preferred date (YYYY-MM-DD)"
         value={preferredDate}
         onChangeText={setPreferredDate}
       />
+      <Pressable
+        style={styles.dateButton}
+        onPress={() => setShowDatePicker(true)}
+      >
+        <Text style={styles.dateButtonText}>Pick Date</Text>
+      </Pressable>
+      {showDatePicker ? (
+        <DateTimePicker
+          value={preferredDate ? new Date(preferredDate) : new Date()}
+          mode="date"
+          display="default"
+          onChange={(event, date) => {
+            setShowDatePicker(false);
+            if (date) {
+              setPreferredDate(date.toISOString().slice(0, 10));
+            }
+          }}
+        />
+      ) : null}
       <TextInput
         style={styles.input}
         placeholder="Preferred time (e.g. 10:30 AM)"
         value={preferredTime}
         onChangeText={setPreferredTime}
       />
+
+      {selectedDoctor?.availableSlots?.length ? (
+        <View style={styles.slotRow}>
+          {selectedDoctor.availableSlots.map((slot) => (
+            <Pressable
+              key={slot}
+              style={[
+                styles.slotChip,
+                preferredTime === slot && styles.slotChipActive,
+              ]}
+              onPress={() => setPreferredTime(slot)}
+            >
+              <Text
+                style={[
+                  styles.slotText,
+                  preferredTime === slot && styles.slotTextActive,
+                ]}
+              >
+                {slot}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
 
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
@@ -183,6 +306,21 @@ export default function PatientConsultScreen() {
             <Text style={styles.appointmentMeta}>
               Status: {appt.status}
             </Text>
+            {appt.urgencyScore !== undefined ? (
+              <Text style={styles.appointmentMeta}>
+                Urgency: {appt.urgencyScore}/100
+              </Text>
+            ) : null}
+            {appt.appointmentType ? (
+              <Text style={styles.appointmentMeta}>
+                Type: {appt.appointmentType}
+              </Text>
+            ) : null}
+            {appt.videoLink ? (
+              <Text style={styles.appointmentMeta}>
+                Video: {appt.videoLink}
+              </Text>
+            ) : null}
             {appt.status === "BOOKED" ? (
               <Pressable
                 style={styles.cancelButton}
@@ -247,6 +385,95 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E2E8F0",
     backgroundColor: "#FFFFFF",
+  },
+  aiRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 12,
+    gap: 10,
+  },
+  aiInput: {
+    flex: 1,
+    minHeight: 60,
+  },
+  aiButton: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: "#0F172A",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  aiButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+  },
+  urgencyText: {
+    marginTop: 8,
+    color: "#B91C1C",
+    fontWeight: "700",
+  },
+  toggleRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 10,
+  },
+  toggleButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+  },
+  toggleButtonActive: {
+    borderColor: "#5DC1B9",
+    backgroundColor: "#E7FAF8",
+  },
+  toggleText: {
+    color: "#64748B",
+    fontWeight: "600",
+  },
+  toggleTextActive: {
+    color: "#0F172A",
+  },
+  dateButton: {
+    marginTop: 8,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: "#E7FAF8",
+    alignItems: "center",
+  },
+  dateButtonText: {
+    color: "#0F172A",
+    fontWeight: "700",
+  },
+  slotRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 8,
+  },
+  slotChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    backgroundColor: "#FFFFFF",
+  },
+  slotChipActive: {
+    backgroundColor: "#5DC1B9",
+    borderColor: "#5DC1B9",
+  },
+  slotText: {
+    color: "#475569",
+    fontSize: 12,
+  },
+  slotTextActive: {
+    color: "#FFFFFF",
+    fontWeight: "700",
   },
   primaryButton: {
     marginTop: 14,

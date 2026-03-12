@@ -45,6 +45,14 @@ const PLACE_TO_TOWN = {
     'Sirhind Road Dhakoli': 'Sirhind'
 };
 
+const defaultSlots = [
+    '09:00 AM',
+    '10:30 AM',
+    '12:00 PM',
+    '03:00 PM',
+    '04:30 PM'
+];
+
 const doctorProfiles = [
     { name: 'Dr. Aditi Sharma', username: 'dr.aditi', hospitalName: 'Nabha CHC' },
     { name: 'Dr. Rohan Mehta', username: 'dr.rohan', hospitalName: 'Nabha Civil Hospital' },
@@ -165,13 +173,22 @@ const seedAccounts = async () => {
         const doctor = {
             ...doctorProfile,
             password: 'Doctor@123',
-            locationCoordinates
+            locationCoordinates,
+            availableSlots: defaultSlots
         };
 
         doctorOps.push({
             updateOne: {
                 filter: { username: doctor.username },
-                update: { $setOnInsert: doctor },
+                update: {
+                    $set: {
+                        name: doctor.name,
+                        hospitalName: doctor.hospitalName,
+                        locationCoordinates: doctor.locationCoordinates,
+                        availableSlots: doctor.availableSlots
+                    },
+                    $setOnInsert: { password: doctor.password, username: doctor.username }
+                },
                 upsert: true
             }
         });
