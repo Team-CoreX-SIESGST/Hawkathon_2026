@@ -27,12 +27,41 @@ function AskAIModal({ medicine, onClose, onSearchGeneric }) {
   const [info, setInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [translatedInfo, setTranslatedInfo] = useState(null);
+  const [selectedLanguage, setSelectedLanguage] = useState("en");
+  const [translating, setTranslating] = useState(false);
+
+  const languages = [
+    { code: "en", name: "English" },
+    { code: "hi", name: "हिन्दी (Hindi)" },
+    { code: "bn", name: "বাংলা (Bengali)" },
+    { code: "te", name: "తెలుగు (Telugu)" },
+    { code: "mr", name: "मराठी (Marathi)" },
+    { code: "ta", name: "தமிழ் (Tamil)" },
+    { code: "gu", name: "ગુજરાતી (Gujarati)" },
+    { code: "kn", name: "ಕನ್ನಡ (Kannada)" },
+    { code: "ml", name: "മലയാളം (Malayalam)" },
+    { code: "pa", name: "ਪੰਜਾਬੀ (Punjabi)" },
+    { code: "or", name: "ଓଡ଼ିଆ (Odia)" },
+    { code: "as", name: "অসমীয়া (Assamese)" },
+    { code: "ur", name: "اردو (Urdu)" },
+    { code: "es", name: "Español (Spanish)" },
+    { code: "fr", name: "Français (French)" },
+    { code: "de", name: "Deutsch (German)" },
+    { code: "zh", name: "中文 (Chinese)" },
+    { code: "ar", name: "العربية (Arabic)" },
+    { code: "pt", name: "Português (Portuguese)" },
+    { code: "ru", name: "Русский (Russian)" },
+    { code: "ja", name: "日本語 (Japanese)" }
+  ];
 
   useEffect(() => {
     if (!medicine) return;
     setLoading(true);
     setError("");
     setInfo(null);
+    setTranslatedInfo(null);
+    setSelectedLanguage("en");
 
     const name = encodeURIComponent(medicine["medicine name"] || "");
     const generic = encodeURIComponent(medicine["generic name"] || "");
@@ -45,6 +74,43 @@ function AskAIModal({ medicine, onClose, onSearchGeneric }) {
       .catch((e) => setError(e.message || "Failed to load info"))
       .finally(() => setLoading(false));
   }, [medicine]);
+
+  const handleTranslate = async (languageCode) => {
+    if (!info || languageCode === "en") {
+      setTranslatedInfo(null);
+      setSelectedLanguage(languageCode);
+      return;
+    }
+
+    setTranslating(true);
+    try {
+      const response = await fetch(`${API_BASE}/api/sheets/medicine/translate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          medicineInfo: info,
+          targetLanguage: languageCode
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setTranslatedInfo(data.translatedInfo);
+        setSelectedLanguage(languageCode);
+      } else {
+        throw new Error(data.message);
+      }
+    } catch (error) {
+      console.error('Translation error:', error);
+      // Fallback: keep original info
+      setTranslatedInfo(null);
+      setSelectedLanguage("en");
+    } finally {
+      setTranslating(false);
+    }
+  };
 
   const handleGenericTap = (name) => {
     onClose();
@@ -79,6 +145,39 @@ function AskAIModal({ medicine, onClose, onSearchGeneric }) {
               </View>
             </View>
 
+            {/* Translate Section */}
+            {info && (
+              <View style={ms.translateSection}>
+                <Text style={ms.translateLabel}>Translate to:</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={ms.languageScroll}>
+                  {languages.map((lang) => (
+                    <TouchableOpacity
+                      key={lang.code}
+                      style={[
+                        ms.languageButton,
+                        selectedLanguage === lang.code && ms.languageButtonActive
+                      ]}
+                      onPress={() => handleTranslate(lang.code)}
+                      disabled={translating}
+                    >
+                      <Text style={[
+                        ms.languageButtonText,
+                        selectedLanguage === lang.code && ms.languageButtonTextActive
+                      ]}>
+                        {lang.name.split(' ')[0]}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+                {translating && (
+                  <View style={ms.translatingRow}>
+                    <ActivityIndicator size="small" color="#0d9488" />
+                    <Text style={ms.translatingText}>Translating...</Text>
+                  </View>
+                )}
+              </View>
+            )}
+
             {loading ? (
               <View style={ms.center}>
                 <ActivityIndicator color="#0d9488" size="large" />
@@ -94,7 +193,9 @@ function AskAIModal({ medicine, onClose, onSearchGeneric }) {
                 {/* Description */}
                 <View style={ms.section}>
                   <Text style={ms.sectionTitle}>What is it?</Text>
-                  <Text style={ms.descText}>{info.description}</Text>
+                  <Text style={ms.descText}>
+                    {translatedInfo?.description || info.description}
+                  </Text>
                 </View>
 
                 {/* OTC badge */}
@@ -106,16 +207,16 @@ function AskAIModal({ medicine, onClose, onSearchGeneric }) {
                       color={info.otcAvailable ? "#059669" : "#DC2626"}
                     />
                     <Text style={[ms.otcText, { color: info.otcAvailable ? "#059669" : "#DC2626" }]}>
-                      {info.otcAvailable ? "Available Over-the-Counter" : "Prescription Required"}
+                      {translatedInfo?.otcStatus || (info.otcAvailable ? "Available Over-the-Counter" : "Prescription Required")}
                     </Text>
                   </View>
                 </View>
 
                 {/* Primary uses */}
-                {info.primaryUses?.length > 0 && (
+                {(translatedInfo?.primaryUses || info.primaryUses)?.length > 0 && (
                   <View style={ms.section}>
                     <Text style={ms.sectionTitle}>Primary Uses</Text>
-                    {info.primaryUses.map((u, i) => (
+                    {(translatedInfo?.primaryUses || info.primaryUses).map((u, i) => (
                       <View key={i} style={ms.bulletRow}>
                         <View style={ms.bullet} />
                         <Text style={ms.bulletText}>{u}</Text>
@@ -125,11 +226,11 @@ function AskAIModal({ medicine, onClose, onSearchGeneric }) {
                 )}
 
                 {/* Side effects */}
-                {info.commonSideEffects?.length > 0 && (
+                {(translatedInfo?.commonSideEffects || info.commonSideEffects)?.length > 0 && (
                   <View style={ms.section}>
                     <Text style={ms.sectionTitle}>Common Side Effects</Text>
                     <View style={ms.chipRow}>
-                      {info.commonSideEffects.map((s, i) => (
+                      {(translatedInfo?.commonSideEffects || info.commonSideEffects).map((s, i) => (
                         <View key={i} style={ms.sideChip}>
                           <Text style={ms.sideChipText}>{s}</Text>
                         </View>
@@ -139,19 +240,21 @@ function AskAIModal({ medicine, onClose, onSearchGeneric }) {
                 )}
 
                 {/* Warning */}
-                {info.warningNote && (
+                {(translatedInfo?.warningNote || info.warningNote) && (
                   <View style={ms.warningBox}>
                     <Feather name="alert-triangle" size={14} color="#d97706" />
-                    <Text style={ms.warningText}>{info.warningNote}</Text>
+                    <Text style={ms.warningText}>
+                      {translatedInfo?.warningNote || info.warningNote}
+                    </Text>
                   </View>
                 )}
 
                 {/* Generic alternatives — tappable */}
-                {info.genericAlternatives?.length > 0 && (
+                {(translatedInfo?.genericAlternatives || info.genericAlternatives)?.length > 0 && (
                   <View style={ms.section}>
                     <Text style={ms.sectionTitle}>Generic Alternatives</Text>
                     <Text style={ms.sectionHint}>Tap any to search the list ↓</Text>
-                    {info.genericAlternatives.map((g, i) => (
+                    {(translatedInfo?.genericAlternatives || info.genericAlternatives).map((g, i) => (
                       <TouchableOpacity
                         key={i}
                         style={ms.genericCard}
@@ -555,4 +658,29 @@ const ms = StyleSheet.create({
   genericLeft: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 },
   genericName: { fontSize: 15, fontWeight: "700", color: "#0d9488" },
   genericNote: { fontSize: 13, color: "#64748B", lineHeight: 18 },
+  
+  // Translate styles
+  translateSection: { marginBottom: 20, backgroundColor: "#F8FAFC", borderRadius: 12, padding: 16 },
+  translateLabel: { fontSize: 14, fontWeight: "600", color: "#334155", marginBottom: 12 },
+  languageScroll: { flexDirection: "row" },
+  languageButton: {
+    backgroundColor: "#E2E8F0", borderRadius: 20, paddingHorizontal: 16, paddingVertical: 8,
+    marginRight: 8, borderWidth: 1, borderColor: "transparent"
+  },
+  languageButtonActive: {
+    backgroundColor: "#0d9488", borderColor: "#0d9488"
+  },
+  languageButtonText: {
+    fontSize: 12, fontWeight: "600", color: "#64748B"
+  },
+  languageButtonTextActive: {
+    color: "#FFFFFF"
+  },
+  translatingRow: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    marginTop: 12, justifyContent: "center"
+  },
+  translatingText: {
+    fontSize: 13, color: "#0d9488", fontWeight: "600"
+  },
 });
