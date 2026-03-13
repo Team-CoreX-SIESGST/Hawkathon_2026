@@ -1,17 +1,45 @@
-import React from "react";
-import { SafeAreaView, StyleSheet, Text, View } from "react-native";
+import React, { useEffect } from "react";
+import {
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  View,
+  Pressable,
+  Platform,
+  Linking,
+} from "react-native";
 import { WebView } from "react-native-webview";
 
 export default function CallScreen({ route }) {
-  const url = route?.params?.url || "https://meet.jit.si/";
+  const url = route?.params?.url || "https://calendly.com/suthakaranburaj";
   const title = route?.params?.title || "Call";
+
+  useEffect(() => {
+    if (Platform.OS === "web") {
+      Linking.openURL(url).catch(() => {});
+    }
+  }, [url]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
         <Text style={styles.headerText}>{title}</Text>
       </View>
-      <WebView source={{ uri: url }} style={styles.webview} />
+      {Platform.OS === "web" ? (
+        <View style={styles.webFallback}>
+          <Text style={styles.webFallbackText}>
+            Opening the scheduling page in a new tab.
+          </Text>
+          <Pressable
+            style={styles.webFallbackButton}
+            onPress={() => Linking.openURL(url)}
+          >
+            <Text style={styles.webFallbackButtonText}>Open Scheduling Page</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <WebView source={{ uri: url }} style={styles.webview} />
+      )}
     </SafeAreaView>
   );
 }
@@ -32,5 +60,27 @@ const styles = StyleSheet.create({
   },
   webview: {
     flex: 1,
+  },
+  webFallback: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+    backgroundColor: "#0F172A",
+  },
+  webFallbackText: {
+    color: "#E2E8F0",
+    textAlign: "center",
+  },
+  webFallbackButton: {
+    marginTop: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: "#5DC1B9",
+  },
+  webFallbackButtonText: {
+    color: "#0F172A",
+    fontWeight: "700",
   },
 });
