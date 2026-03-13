@@ -1,4 +1,4 @@
-import React, { useContext, useMemo, useRef } from "react";
+import React, { useContext, useMemo, useRef, useEffect } from "react";
 import {
   ActivityIndicator,
   Animated,
@@ -24,8 +24,16 @@ const getRTCView = () => {
 
 export default function VideoCallScreen({ route, navigation }) {
   const { user, role } = useContext(AuthContext);
-  const { roomId, userRole, userName, remoteName } = route.params || {};
+  const { roomId, userRole, userName, remoteName, callType } =
+    route.params || {};
   const RTCView = useMemo(() => getRTCView(), []);
+  const isWeb = Platform.OS === "web";
+  const isAudioOnly = callType === "AUDIO_CALL";
+  const WebVideo = isWeb ? "video" : View;
+  const WebAudio = isWeb ? "audio" : View;
+  const remoteVideoRef = useRef(null);
+  const localVideoRef = useRef(null);
+  const remoteAudioRef = useRef(null);
 
   const resolvedRole = userRole || role || "patient";
   const resolvedName =
@@ -39,6 +47,7 @@ export default function VideoCallScreen({ route, navigation }) {
     userId: user?._id,
     userRole: resolvedRole,
     userName: resolvedName,
+    callType,
   });
 
   const { width } = Dimensions.get("window");
@@ -76,7 +85,7 @@ export default function VideoCallScreen({ route, navigation }) {
   const waitingTitle =
     resolvedRole === "doctor" ? "Waiting for patient" : "Waiting for doctor";
 
-  if (!RTCView) {
+  if (!RTCView && !isWeb) {
     return (
       <View style={styles.container}>
         <View style={styles.waiting}>
@@ -95,15 +104,60 @@ export default function VideoCallScreen({ route, navigation }) {
     );
   }
 
+  useEffect(() => {
+    if (!isWeb) return;
+    if (remoteVideoRef.current && call.remoteStream && !isAudioOnly) {
+      remoteVideoRef.current.srcObject = call.remoteStream;
+      remoteVideoRef.current
+        .play()
+        .catch(() => {});
+    }
+    if (localVideoRef.current && call.localStream && !isAudioOnly) {
+      localVideoRef.current.srcObject = call.localStream;
+      localVideoRef.current
+        .play()
+        .catch(() => {});
+    }
+    if (remoteAudioRef.current && call.remoteStream && isAudioOnly) {
+      remoteAudioRef.current.srcObject = call.remoteStream;
+      remoteAudioRef.current
+        .play()
+        .catch(() => {});
+    }
+  }, [call.remoteStream, call.localStream, isWeb, isAudioOnly]);
+
   return (
     <View style={styles.container}>
-
       {call.remoteStream ? (
-        <RTCView
-          streamURL={call.remoteStream.toURL()}
-          style={styles.remoteVideo}
-          objectFit="cover"
-        />
+        isAudioOnly ? (
+          <View style={styles.audioStage}>
+            <View style={styles.audioRing}>
+              <Text style={styles.audioInitial}>
+                {(remoteName || call.remoteInfo?.name || "A").slice(0, 1)}
+              </Text>
+            </View>
+            <Text style={styles.audioName}>
+              {remoteName || call.remoteInfo?.name || "Connected"}
+            </Text>
+            <Text style={styles.audioStatus}>Audio call live</Text>
+            {isWeb ? (
+              <WebAudio ref={remoteAudioRef} autoPlay />
+            ) : null}
+          </View>
+        ) : isWeb ? (
+          <WebVideo
+            ref={remoteVideoRef}
+            style={styles.webVideo}
+            autoPlay
+            playsInline
+          />
+        ) : (
+          <RTCView
+            streamURL={call.remoteStream.toURL()}
+            style={styles.remoteVideo}
+            objectFit="cover"
+          />
+        )
       ) : (
         <View style={styles.waiting}>
           <Text style={styles.waitingTitle}>{waitingTitle}</Text>
@@ -114,18 +168,33 @@ export default function VideoCallScreen({ route, navigation }) {
         </View>
       )}
 
-      {RTCView && call.localStream ? (
-        <Animated.View
-          style={[styles.localPreview, pipPosition.getLayout()]}
-          {...panResponder.panHandlers}
-        >
-          <RTCView
-            streamURL={call.localStream.toURL()}
-            style={styles.localVideo}
-            objectFit="cover"
-            mirror
-          />
-        </Animated.View>
+      {!isAudioOnly && call.localStream ? (
+        isWeb ? (
+          <Animated.View
+            style={[styles.localPreview, pipPosition.getLayout()]}
+            {...panResponder.panHandlers}
+          >
+            <WebVideo
+              ref={localVideoRef}
+              style={styles.webVideo}
+              muted
+              autoPlay
+              playsInline
+            />
+          </Animated.View>
+        ) : (
+          <Animated.View
+            style={[styles.localPreview, pipPosition.getLayout()]}
+            {...panResponder.panHandlers}
+          >
+            <RTCView
+              streamURL={call.localStream.toURL()}
+              style={styles.localVideo}
+              objectFit="cover"
+              mirror
+            />
+          </Animated.View>
+        )
       ) : null}
 
       {call.error ? (
@@ -140,14 +209,18 @@ export default function VideoCallScreen({ route, navigation }) {
             {call.isMuted ? "Unmute" : "Mute"}
           </Text>
         </Pressable>
-        <Pressable style={styles.controlButton} onPress={call.toggleCamera}>
-          <Text style={styles.controlText}>
-            {call.isVideoEnabled ? "Hide Cam" : "Show Cam"}
-          </Text>
-        </Pressable>
-        <Pressable style={styles.controlButton} onPress={call.flipCamera}>
-          <Text style={styles.controlText}>Flip</Text>
-        </Pressable>
+        {!isAudioOnly ? (
+          <>
+            <Pressable style={styles.controlButton} onPress={call.toggleCamera}>
+              <Text style={styles.controlText}>
+                {call.isVideoEnabled ? "Hide Cam" : "Show Cam"}
+              </Text>
+            </Pressable>
+            <Pressable style={styles.controlButton} onPress={call.flipCamera}>
+              <Text style={styles.controlText}>Flip</Text>
+            </Pressable>
+          </>
+        ) : null}
         <Pressable style={[styles.controlButton, styles.endButton]} onPress={handleEnd}>
           <Text style={styles.endText}>End</Text>
         </Pressable>
@@ -163,6 +236,11 @@ const styles = StyleSheet.create({
   },
   remoteVideo: {
     flex: 1,
+  },
+  webVideo: {
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
   },
   waiting: {
     flex: 1,
@@ -194,6 +272,37 @@ const styles = StyleSheet.create({
   localVideo: {
     width: "100%",
     height: "100%",
+  },
+  audioStage: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+  },
+  audioRing: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: "#1E293B",
+    borderWidth: 2,
+    borderColor: "#5DC1B9",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  audioInitial: {
+    fontSize: 36,
+    fontWeight: "800",
+    color: "#5DC1B9",
+  },
+  audioName: {
+    marginTop: 16,
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  audioStatus: {
+    marginTop: 6,
+    color: "#CBD5F5",
   },
   errorBanner: {
     position: "absolute",

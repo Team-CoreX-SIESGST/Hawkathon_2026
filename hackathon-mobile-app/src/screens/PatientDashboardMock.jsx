@@ -26,7 +26,7 @@ const quickActions = [
 const bottomNavItems = [
   { label: "Home", icon: "home" },
   { label: "Consult", icon: "message-circle", route: "PatientConsult" },
-  { label: "Records", icon: "file-text", route: "MedicineRecords" },
+  { label: "Records", icon: "file-text", route: "HealthRecords" },
   { label: "Profile", icon: "user", route: "PatientProfile" },
 ];
 
@@ -148,6 +148,10 @@ export default function PatientDashboardMock() {
               onPress={() => {
                 if (item.title === "Talk to Doctor") {
                   navigation.navigate("Chat");
+                  return;
+                }
+                if (item.title === "Health Records") {
+                  navigation.navigate("HealthRecords");
                   return;
                 }
                 if (item.title === "Call with Ai") {

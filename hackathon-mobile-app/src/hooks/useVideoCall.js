@@ -12,11 +12,13 @@ export default function useVideoCall({
   userId,
   userRole,
   userName,
+  callType,
 }) {
+  const wantsVideo = callType !== "AUDIO_CALL";
   const [localStream, setLocalStream] = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
-  const [isVideoEnabled, setIsVideoEnabled] = useState(true);
+  const [isVideoEnabled, setIsVideoEnabled] = useState(wantsVideo);
   const [isWaiting, setIsWaiting] = useState(true);
   const [remoteInfo, setRemoteInfo] = useState(null);
   const [error, setError] = useState("");
@@ -29,7 +31,20 @@ export default function useVideoCall({
 
   const ensureWebRTC = useCallback(() => {
     if (webrtcRef.current) return webrtcRef.current;
-    if (Platform.OS === "web") return null;
+    if (Platform.OS === "web") {
+      if (typeof window === "undefined") return null;
+      const WebRTC = {
+        RTCPeerConnection: window.RTCPeerConnection,
+        RTCIceCandidate: window.RTCIceCandidate,
+        RTCSessionDescription: window.RTCSessionDescription,
+        mediaDevices: navigator?.mediaDevices,
+      };
+      if (!WebRTC.RTCPeerConnection || !WebRTC.mediaDevices?.getUserMedia) {
+        return null;
+      }
+      webrtcRef.current = WebRTC;
+      return WebRTC;
+    }
     try {
       // Lazy-load to avoid crashing on web/Expo Go when the native module is missing.
       webrtcRef.current = require("react-native-webrtc");
@@ -163,7 +178,7 @@ export default function useVideoCall({
     // Get local media
     const stream = await mediaDevices.getUserMedia({
       audio: true,
-      video: { facingMode: "user" },
+      video: wantsVideo ? { facingMode: "user" } : false,
     });
     localStreamRef.current = stream;
     setLocalStream(stream);
@@ -231,6 +246,7 @@ export default function useVideoCall({
     createOffer,
     createAnswer,
     ensureWebRTC,
+    wantsVideo,
   ]);
 
   useEffect(() => {

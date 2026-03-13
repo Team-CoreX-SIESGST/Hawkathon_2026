@@ -13,6 +13,7 @@ import uploadRouter from "./routers/uploadRouter.js";
 import youtubeRouter from "./routers/youtubeRouter.js";
 import feedbackRouter from "./routers/feedbackRouter.js";
 import proxyRouter from "./routers/proxyRouter.js";
+import medicineRouter from "./routers/medicineRouter.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -102,6 +103,7 @@ app.use("/api/youtube", youtubeRouter); // MCP (Model Context Protocol) endpoint
 app.use("/api/chat", chatRouter); // Chat endpoints
 app.use("/api/feedback", feedbackRouter);
 app.use("/api/proxy", proxyRouter);
+app.use("/api/medicine", medicineRouter); // Medicine information endpoints
 
 // Health check
 app.get("/", (req, res) => {

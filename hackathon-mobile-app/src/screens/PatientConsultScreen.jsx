@@ -6,7 +6,6 @@ import {
   ScrollView,
   TextInput,
   Pressable,
-  Modal,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { AuthContext } from "../context/AuthContext";
@@ -16,10 +15,7 @@ import {
   getMyAppointments,
   cancelAppointment,
   structureAppointment,
-  patientNotifications,
-  patientReadNotification,
 } from "../services/api";
-import { createSocket } from "../services/socket";
 
 export default function PatientConsultScreen({ navigation }) {
   const { token, user } = useContext(AuthContext);
@@ -35,9 +31,7 @@ export default function PatientConsultScreen({ navigation }) {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [notifications, setNotifications] = useState([]);
   const [slotsOpen, setSlotsOpen] = useState(false);
-  const [incomingCall, setIncomingCall] = useState(null);
 
   const coords = useMemo(() => user?.locationCoordinates, [user]);
 
@@ -61,37 +55,10 @@ export default function PatientConsultScreen({ navigation }) {
     }
   };
 
-  const loadNotifications = async () => {
-    if (!token) return;
-    try {
-      const data = await patientNotifications(token);
-      setNotifications(data.results || []);
-    } catch (err) {
-      setNotifications([]);
-    }
-  };
-
   useEffect(() => {
     loadDoctors();
     loadAppointments();
-    loadNotifications();
   }, []);
-
-  useEffect(() => {
-    if (!user?._id) return;
-    const socket = createSocket();
-    socket.emit("register-user", {
-      userId: user._id,
-      role: "patient",
-      name: user?.abha_profile?.name || user?.name,
-    });
-    socket.on("incoming-call", (payload) => {
-      setIncomingCall(payload);
-    });
-    return () => {
-      socket.disconnect();
-    };
-  }, [user?._id]);
 
   const handleBook = async () => {
     if (!selectedDoctor) {
@@ -331,9 +298,14 @@ export default function PatientConsultScreen({ navigation }) {
         appointments.map((appt) => (
           <View key={appt._id} style={styles.appointmentCard}>
             <View style={styles.appointmentHeader}>
-              <Text style={styles.appointmentTitle}>
-                {appt.doctor?.name || "Doctor"}
-              </Text>
+              <View>
+                <Text style={styles.appointmentTitle}>
+                  {appt.doctor?.name || "Doctor"}
+                </Text>
+                <Text style={styles.appointmentMeta}>
+                  {appt.preferredDate} · {appt.preferredTime}
+                </Text>
+              </View>
               {appt.appointmentType ? (
                 <View style={styles.typeBadge}>
                   <Text style={styles.typeBadgeText}>
@@ -345,12 +317,26 @@ export default function PatientConsultScreen({ navigation }) {
             <Text style={styles.appointmentProblem}>
               {appt.problem || "Appointment"}
             </Text>
-            <Text style={styles.appointmentMeta}>
-              {appt.preferredDate}  {appt.preferredTime}
-            </Text>
-            <Text style={styles.appointmentMeta}>
-              Status: {appt.status}
-            </Text>
+            <View style={styles.appointmentStatusRow}>
+              <Text style={styles.appointmentStatusLabel}>Status</Text>
+              <Text style={styles.appointmentStatusValue}>{appt.status}</Text>
+            </View>
+            {appt.status === "IN_CALL" ? (
+              <Pressable
+                style={styles.callButton}
+                onPress={() =>
+                  navigation.navigate("VideoCall", {
+                    roomId: appt._id,
+                    userRole: "patient",
+                    userName: user?.abha_profile?.name || user?.name,
+                    remoteName: appt.doctor?.name || "Doctor",
+                    callType: appt.appointmentType,
+                  })
+                }
+              >
+                <Text style={styles.callButtonText}>Join Call</Text>
+              </Pressable>
+            ) : null}
             {appt.status === "BOOKED" ? (
               <Pressable
                 style={styles.cancelButton}
@@ -363,69 +349,6 @@ export default function PatientConsultScreen({ navigation }) {
         ))
       )}
 
-      <Text style={styles.sectionTitle}>Notifications</Text>
-      {notifications.length === 0 ? (
-        <Text style={styles.helperText}>No notifications.</Text>
-      ) : (
-        notifications.map((note) => (
-          <View key={note._id} style={styles.notificationCard}>
-            <Text style={styles.notificationText}>{note.message}</Text>
-            {note?.data?.videoLink ? (
-              <Pressable
-                style={styles.callButton}
-                onPress={async () => {
-                  await patientReadNotification(token, note._id);
-                  navigation.navigate("CallScreen", {
-                    url: note.data.videoLink,
-                    title: "Incoming Call",
-                  });
-                }}
-              >
-                <Text style={styles.callButtonText}>Join Call</Text>
-              </Pressable>
-            ) : null}
-          </View>
-        ))
-      )}
-
-      <Modal visible={!!incomingCall} transparent animationType="slide">
-        <View style={styles.callOverlay}>
-          <View style={styles.callCard}>
-            <Text style={styles.callTitle}>
-              Incoming{" "}
-              {incomingCall?.callType === "AUDIO_CALL" ? "Audio" : "Video"} Call
-            </Text>
-            <Text style={styles.callSubtitle}>
-              {incomingCall?.fromName || "Doctor"} is calling you
-            </Text>
-            <View style={styles.callActions}>
-              <Pressable
-                style={[styles.callActionButton, styles.callDecline]}
-                onPress={() => setIncomingCall(null)}
-              >
-                <Text style={styles.callDeclineText}>Decline</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.callActionButton, styles.callAccept]}
-                onPress={() => {
-                  const roomId = incomingCall?.roomId;
-                  setIncomingCall(null);
-                  if (roomId) {
-                    navigation.navigate("VideoCall", {
-                      roomId,
-                      userRole: "patient",
-                      userName: user?.abha_profile?.name || user?.name,
-                      remoteName: incomingCall?.fromName,
-                    });
-                  }
-                }}
-              >
-                <Text style={styles.callAcceptText}>Accept</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </ScrollView>
   );
 }
@@ -585,10 +508,10 @@ const styles = StyleSheet.create({
   appointmentCard: {
     marginTop: 12,
     padding: 14,
-    borderRadius: 14,
+    borderRadius: 18,
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: "#E6EEF0",
   },
   appointmentTitle: {
     fontWeight: "700",
@@ -619,6 +542,27 @@ const styles = StyleSheet.create({
     marginTop: 4,
     color: "#64748B",
   },
+  appointmentStatusRow: {
+    marginTop: 10,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  appointmentStatusLabel: {
+    fontSize: 12,
+    color: "#94A3B8",
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    fontWeight: "600",
+  },
+  appointmentStatusValue: {
+    color: "#0F172A",
+    fontWeight: "700",
+  },
   cancelButton: {
     marginTop: 10,
     alignSelf: "flex-start",
@@ -639,17 +583,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
     color: "#DC2626",
   },
-  notificationCard: {
-    marginTop: 12,
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-  },
-  notificationText: {
-    color: "#0F172A",
-  },
   callButton: {
     marginTop: 10,
     paddingVertical: 8,
@@ -658,53 +591,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   callButtonText: {
-    color: "#FFFFFF",
-    fontWeight: "700",
-  },
-  callOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(15,23,42,0.7)",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 24,
-  },
-  callCard: {
-    width: "100%",
-    borderRadius: 20,
-    backgroundColor: "#FFFFFF",
-    padding: 20,
-  },
-  callTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#0F172A",
-  },
-  callSubtitle: {
-    marginTop: 6,
-    color: "#64748B",
-  },
-  callActions: {
-    marginTop: 16,
-    flexDirection: "row",
-    gap: 12,
-  },
-  callActionButton: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  callDecline: {
-    backgroundColor: "#FEE2E2",
-  },
-  callDeclineText: {
-    color: "#B91C1C",
-    fontWeight: "700",
-  },
-  callAccept: {
-    backgroundColor: "#0F172A",
-  },
-  callAcceptText: {
     color: "#FFFFFF",
     fontWeight: "700",
   },

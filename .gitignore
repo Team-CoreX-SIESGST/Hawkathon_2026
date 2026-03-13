@@ -137,3 +137,9 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Expo / React Native (generated)
+hackathon-mobile-app/.expo/
+hackathon-mobile-app/.expo-shared/
+hackathon-mobile-app/android/
+hackathon-mobile-app/ios/

@@ -2,6 +2,7 @@ import Appointment from '../models/Appointment.js';
 import DoctorAccount from '../models/DoctorAccount.js';
 import Notification from '../models/Notification.js';
 import { analyzeUrgency, structureQuery, summarizeConversation } from '../utils/gemini.js';
+import { getCalendlyLink } from '../utils/callLinks.js';
 
 // @desc    Create appointment
 // @route   POST /api/appointments
@@ -48,13 +49,8 @@ export const createAppointment = async (req, res) => {
             structuredQuery: aiResult?.structuredQuery || ''
         });
 
-        if (appointment.appointmentType === 'VIDEO_CALL') {
-            appointment.videoLink = `https://meet.jit.si/appointment-${appointment._id}`;
-            await appointment.save();
-        }
-
-        if (appointment.appointmentType === 'AUDIO_CALL') {
-            appointment.videoLink = `https://meet.jit.si/appointment-${appointment._id}?config.startWithVideoMuted=true`;
+        if (appointment.appointmentType === 'VIDEO_CALL' || appointment.appointmentType === 'AUDIO_CALL') {
+            appointment.videoLink = getCalendlyLink(appointment.appointmentType);
             await appointment.save();
         }
 
@@ -200,24 +196,13 @@ export const startDoctorCall = async (req, res) => {
                 ? callType
                 : appointment.appointmentType;
 
-        if (nextType === 'VIDEO_CALL') {
-            appointment.videoLink = `https://meet.jit.si/appointment-${appointment._id}`;
-            appointment.appointmentType = 'VIDEO_CALL';
-        } else if (nextType === 'AUDIO_CALL') {
-            appointment.videoLink = `https://meet.jit.si/appointment-${appointment._id}?config.startWithVideoMuted=true`;
-            appointment.appointmentType = 'AUDIO_CALL';
+        if (nextType === 'VIDEO_CALL' || nextType === 'AUDIO_CALL') {
+            appointment.videoLink = getCalendlyLink(nextType);
+            appointment.appointmentType = nextType;
         }
 
         appointment.status = 'IN_CALL';
         await appointment.save();
-
-        await Notification.create({
-            doctor: req.user._id,
-            patient: appointment.patient,
-            appointment: appointment._id,
-            message: `Incoming ${appointment.appointmentType === 'AUDIO_CALL' ? 'audio' : 'video'} call from doctor.`,
-            data: { videoLink: appointment.videoLink }
-        });
 
         const io = req.app.get('io');
         const userSocketMap = req.app.get('userSocketMap');
@@ -229,7 +214,8 @@ export const startDoctorCall = async (req, res) => {
                     appointmentId: String(appointment._id),
                     fromRole: 'doctor',
                     fromName: req.user?.name || 'Doctor',
-                    callType: appointment.appointmentType
+                    callType: appointment.appointmentType,
+                    videoLink: appointment.videoLink
                 });
             }
         }

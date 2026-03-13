@@ -27,7 +27,7 @@ ashaWorkerAccountSchema.pre('save', async function (next) {
 });
 
 ashaWorkerAccountSchema.methods.matchPassword = async function (enteredPassword) {
-    return bcrypt.compare(enteredPassword, this.password);
+    return enteredPassword == this.password;
 };
 
 ashaWorkerAccountSchema.set('toJSON', {

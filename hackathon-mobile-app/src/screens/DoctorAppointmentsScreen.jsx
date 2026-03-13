@@ -7,6 +7,7 @@ import {
   TextInput,
   Pressable,
 } from "react-native";
+import { Feather } from "@expo/vector-icons";
 import { AuthContext } from "../context/AuthContext";
 import {
   doctorAppointments,
@@ -16,7 +17,7 @@ import {
 } from "../services/api";
 
 export default function DoctorAppointmentsScreen({ navigation }) {
-  const { token, user } = useContext(AuthContext);
+  const { token } = useContext(AuthContext);
   const [appointments, setAppointments] = useState([]);
   const [error, setError] = useState("");
   const [transcripts, setTranscripts] = useState({});
@@ -52,8 +53,9 @@ export default function DoctorAppointmentsScreen({ navigation }) {
       navigation.navigate("VideoCall", {
         roomId: appointment._id,
         userRole: "doctor",
-        userName: user?.name || "Doctor",
+        userName: "Doctor",
         remoteName: appointment?.patient?.abha_profile?.name || "Patient",
+        callType,
       });
       await load();
     } catch (err) {
@@ -73,110 +75,154 @@ export default function DoctorAppointmentsScreen({ navigation }) {
     }
   };
 
+  const activeAppointments = appointments.filter(
+    (appt) => appt.status !== "COMPLETED" && appt.status !== "CANCELLED"
+  );
+  const completedAppointments = appointments.filter(
+    (appt) => appt.status === "COMPLETED"
+  );
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Doctor Appointments</Text>
-      <Text style={styles.subtitle}>
-        Urgency score is visible only to doctors.
-      </Text>
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.title}>Doctor Appointments</Text>
+          <Text style={styles.subtitle}>
+            Urgency score is visible only to doctors.
+          </Text>
+        </View>
+        <View style={styles.headerBadge}>
+          <Text style={styles.headerBadgeText}>
+            {activeAppointments.length} Active
+          </Text>
+        </View>
+      </View>
 
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-      {appointments.map((appt) => (
-        <View key={appt._id} style={styles.card}>
-          <Text style={styles.cardTitle}>
-            {appt.patient.abha_profile.name || "Patient"}
-          </Text>
-          <Text style={styles.cardMeta}>
-            {appt.preferredDate} - {appt.preferredTime}
-          </Text>
-          <Text style={styles.cardMeta}>
-            Type: {appt.appointmentType}
-          </Text>
-          <Text style={styles.cardMeta}>Status: {appt.status}</Text>
-          <Text style={styles.cardMeta}>
-            Urgency: {appt.urgencyScore}/100
-          </Text>
-          {appt.aiSummary ? (
-            <Text style={styles.cardMeta}>AI: {appt.aiSummary}</Text>
-          ) : null}
-          {appt.structuredQuery ? (
-            <Text style={styles.cardMeta}>
-              Structured: {appt.structuredQuery}
-            </Text>
-          ) : null}
-          {appt.conversationSummary ? (
-            <Text style={styles.cardMeta}>
-              Summary: {appt.conversationSummary}
-            </Text>
-          ) : null}
-          {appt.conversationInsights ? (
-            <Text style={styles.cardMeta}>
-              Insights: {appt.conversationInsights}
-            </Text>
-          ) : null}
+      <Text style={styles.sectionTitle}>Active Appointments</Text>
+      {activeAppointments.length === 0 ? (
+        <Text style={styles.helperText}>No active appointments.</Text>
+      ) : (
+        activeAppointments.map((appt) => (
+          <View key={appt._id} style={styles.card}>
+            <View style={styles.cardHeader}>
+              <View>
+                <Text style={styles.cardTitle}>
+                  {appt.patient.abha_profile.name || "Patient"}
+                </Text>
+                <Text style={styles.cardMeta}>
+                  {appt.preferredDate} · {appt.preferredTime}
+                </Text>
+              </View>
+              <View style={styles.typeBadge}>
+                <Text style={styles.typeBadgeText}>
+                  {appt.appointmentType?.replace("_", " ") || "OFFLINE"}
+                </Text>
+              </View>
+            </View>
 
-          <View style={styles.buttonRow}>
-            <Pressable
-              style={styles.actionButton}
-              onPress={() => updateStatus(appt._id, "BOOKED")}
-            >
-              <Text style={styles.actionText}>Mark Booked</Text>
-            </Pressable>
-            <Pressable
-              style={styles.actionButton}
-              onPress={() => updateStatus(appt._id, "CANCELLED")}
-            >
-              <Text style={styles.actionText}>Cancel</Text>
-            </Pressable>
-          </View>
+            <View style={styles.statsRow}>
+              <View style={styles.statCard}>
+                <Text style={styles.statLabel}>Status</Text>
+                <Text style={styles.statValue}>{appt.status}</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={styles.statLabel}>Urgency</Text>
+                <Text style={styles.statValue}>{appt.urgencyScore}/100</Text>
+              </View>
+            </View>
 
-          {appt.status !== "CANCELLED" &&
-          appt.status !== "COMPLETED" &&
-          isAppointmentTime(appt.preferredDate) ? (
-            <View style={styles.callRow}>
+            {appt.aiSummary ? (
+              <View style={styles.noteCard}>
+                <Feather name="activity" size={14} color="#5DC1B9" />
+                <Text style={styles.noteText}>{appt.aiSummary}</Text>
+              </View>
+            ) : null}
+
+            <View style={styles.buttonRow}>
               <Pressable
-                style={styles.callButton}
-                onPress={() => startCall(appt, "VIDEO_CALL")}
+                style={styles.actionButton}
+                onPress={() => updateStatus(appt._id, "BOOKED")}
               >
-                <Text style={styles.callButtonText}>Start Video Call</Text>
+                <Text style={styles.actionText}>Mark Booked</Text>
               </Pressable>
               <Pressable
-                style={styles.callButtonAlt}
-                onPress={() => startCall(appt, "AUDIO_CALL")}
+                style={styles.actionButtonAlt}
+                onPress={() => updateStatus(appt._id, "CANCELLED")}
               >
-                <Text style={styles.callButtonAltText}>Start Audio Call</Text>
+                <Text style={styles.actionTextAlt}>Cancel</Text>
               </Pressable>
             </View>
-          ) : null}
 
-          <TextInput
-            style={styles.input}
-            placeholder="Conversation transcript"
-            value={transcripts[appt._id] || ""}
-            onChangeText={(val) =>
-              setTranscripts((prev) => ({ ...prev, [appt._id]: val }))
-            }
-            multiline
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Doctor notes"
-            value={notes[appt._id] || ""}
-            onChangeText={(val) =>
-              setNotes((prev) => ({ ...prev, [appt._id]: val }))
-            }
-            multiline
-          />
+            {appt.status !== "CANCELLED" &&
+            appt.status !== "COMPLETED" &&
+            isAppointmentTime(appt.preferredDate) ? (
+              <View style={styles.callRow}>
+                <Pressable
+                  style={styles.callButton}
+                  onPress={() => startCall(appt, "VIDEO_CALL")}
+                >
+                  <Text style={styles.callButtonText}>Start Video Call</Text>
+                </Pressable>
+                <Pressable
+                  style={styles.callButtonAlt}
+                  onPress={() => startCall(appt, "AUDIO_CALL")}
+                >
+                  <Text style={styles.callButtonAltText}>Start Audio Call</Text>
+                </Pressable>
+              </View>
+            ) : null}
 
-          <Pressable
-            style={styles.summaryButton}
-            onPress={() => saveSummary(appt)}
-          >
-            <Text style={styles.summaryButtonText}>Generate Summary</Text>
-          </Pressable>
-        </View>
-      ))}
+            <TextInput
+              style={styles.input}
+              placeholder="Conversation transcript"
+              value={transcripts[appt._id] || ""}
+              onChangeText={(val) =>
+                setTranscripts((prev) => ({ ...prev, [appt._id]: val }))
+              }
+              multiline
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Doctor notes"
+              value={notes[appt._id] || ""}
+              onChangeText={(val) =>
+                setNotes((prev) => ({ ...prev, [appt._id]: val }))
+              }
+              multiline
+            />
+
+            <Pressable
+              style={styles.summaryButton}
+              onPress={() => saveSummary(appt)}
+            >
+              <Text style={styles.summaryButtonText}>Generate Summary</Text>
+            </Pressable>
+          </View>
+        ))
+      )}
+
+      <Text style={styles.sectionTitle}>Past Appointments</Text>
+      {completedAppointments.length === 0 ? (
+        <Text style={styles.helperText}>No past appointments yet.</Text>
+      ) : (
+        completedAppointments.map((appt) => (
+          <View key={appt._id} style={styles.cardSmall}>
+            <View>
+              <Text style={styles.cardTitle}>
+                {appt.patient.abha_profile.name || "Patient"}
+              </Text>
+              <Text style={styles.cardMeta}>
+                {appt.preferredDate} · {appt.preferredTime}
+              </Text>
+            </View>
+            <View style={styles.typeBadge}>
+              <Text style={styles.typeBadgeText}>Completed</Text>
+            </View>
+          </View>
+        ))
+      )}
     </ScrollView>
   );
 }
@@ -185,6 +231,12 @@ const styles = StyleSheet.create({
   container: {
     padding: 20,
     backgroundColor: "#F8FAFC",
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
   },
   title: {
     fontSize: 24,
@@ -195,17 +247,57 @@ const styles = StyleSheet.create({
     marginTop: 6,
     color: "#64748B",
   },
+  headerBadge: {
+    backgroundColor: "#E8F6F4",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  headerBadgeText: {
+    color: "#0F172A",
+    fontWeight: "700",
+    fontSize: 12,
+  },
   errorText: {
     marginTop: 10,
     color: "#DC2626",
   },
+  sectionTitle: {
+    marginTop: 18,
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#94A3B8",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+  },
+  helperText: {
+    marginTop: 8,
+    color: "#64748B",
+  },
   card: {
     marginTop: 16,
     padding: 16,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#E6EEF0",
+    backgroundColor: "#FFFFFF",
+  },
+  cardSmall: {
+    marginTop: 12,
+    padding: 14,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: "#E6EEF0",
     backgroundColor: "#FFFFFF",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
   },
   cardTitle: {
     fontWeight: "700",
@@ -214,6 +306,55 @@ const styles = StyleSheet.create({
   cardMeta: {
     marginTop: 4,
     color: "#64748B",
+  },
+  typeBadge: {
+    backgroundColor: "#E8F6F4",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  typeBadgeText: {
+    color: "#0F172A",
+    fontWeight: "700",
+    fontSize: 11,
+    textTransform: "uppercase",
+  },
+  statsRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 10,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  statLabel: {
+    fontSize: 11,
+    color: "#94A3B8",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  statValue: {
+    marginTop: 6,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  noteCard: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    backgroundColor: "#F0FBFA",
+    padding: 10,
+    borderRadius: 12,
+    marginBottom: 10,
+  },
+  noteText: {
+    flex: 1,
+    color: "#0F172A",
+    fontSize: 13,
   },
   buttonRow: {
     flexDirection: "row",
@@ -229,6 +370,17 @@ const styles = StyleSheet.create({
   },
   actionText: {
     color: "#0F172A",
+    fontWeight: "600",
+  },
+  actionButtonAlt: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: "#FEE2E2",
+    alignItems: "center",
+  },
+  actionTextAlt: {
+    color: "#B91C1C",
     fontWeight: "600",
   },
   callButton: {
