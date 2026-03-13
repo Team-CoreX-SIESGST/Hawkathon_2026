@@ -1,4 +1,4 @@
-import React, { useContext, useMemo, useState } from "react";
+import React, { useContext, useMemo, useRef, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   StyleSheet,
@@ -8,8 +8,11 @@ import {
   TextInput,
   Image,
   ScrollView,
+  Animated,
+  Easing,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import { useTranslation } from "react-i18next";
 import {
   uploadAbhaCard,
   patientLogin,
@@ -28,8 +31,12 @@ const ROLE_LABELS = {
 };
 
 export default function AuthChoiceScreen({ navigation, route }) {
+  const { t, i18n } = useTranslation();
   const role = route?.params?.role || "patient";
-  const roleLabel = useMemo(() => ROLE_LABELS[role] || "User", [role]);
+  const roleLabel = useMemo(
+    () => t(`roles.${role}`, ROLE_LABELS[role] || "User"),
+    [role, t]
+  );
 
   const [patientMethod, setPatientMethod] = useState("abha");
   const [abhaMode, setAbhaMode] = useState("id");
@@ -51,7 +58,9 @@ export default function AuthChoiceScreen({ navigation, route }) {
   const [doctorLoginLoading, setDoctorLoginLoading] = useState(false);
   const [doctorOtpSending, setDoctorOtpSending] = useState(false);
   const [doctorOtpVerifying, setDoctorOtpVerifying] = useState(false);
+  const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
   const { signIn } = useContext(AuthContext);
+  const languageAnim = useRef(new Animated.Value(0)).current;
 
   const handleGalleryPick = async () => {
     setStatus("");
@@ -242,17 +251,119 @@ export default function AuthChoiceScreen({ navigation, route }) {
     }
   };
 
+  const openLanguageMenu = () => {
+    setLanguageMenuOpen(true);
+    languageAnim.setValue(0);
+    Animated.timing(languageAnim, {
+      toValue: 1,
+      duration: 180,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const closeLanguageMenu = () => {
+    if (!languageMenuOpen) return;
+    Animated.timing(languageAnim, {
+      toValue: 0,
+      duration: 140,
+      easing: Easing.in(Easing.cubic),
+      useNativeDriver: true,
+    }).start(() => setLanguageMenuOpen(false));
+  };
+
+  const toggleLanguageMenu = () => {
+    if (languageMenuOpen) {
+      closeLanguageMenu();
+      return;
+    }
+    openLanguageMenu();
+  };
+
+  const setLanguage = (lang) => {
+    if (i18n.language !== lang) {
+      i18n.changeLanguage(lang);
+    }
+    closeLanguageMenu();
+  };
+
+  const languageOptions = ["en", "hi", "pa", "mr", "ur", "ta"];
+
+  const currentLanguageLabel = t(`common.lang_${i18n.language}`, i18n.language);
+
+  const renderLanguagePicker = () => (
+    <View style={styles.languageFloating}>
+      <View style={styles.languageRow}>
+        <Text style={styles.languageLabel}>{t("common.language")}</Text>
+        <View style={styles.languageDropdownWrap}>
+          <Pressable
+            style={styles.languageDropdownTrigger}
+            onPress={toggleLanguageMenu}
+          >
+            <Text style={styles.languageDropdownText}>
+              {currentLanguageLabel}
+            </Text>
+            <Text style={styles.languageChevron}>
+              {languageMenuOpen ? "▴" : "▾"}
+            </Text>
+          </Pressable>
+          {languageMenuOpen && (
+            <Animated.View
+              style={[
+                styles.languageDropdownMenu,
+                {
+                  opacity: languageAnim,
+                  transform: [
+                    {
+                      translateY: languageAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [-6, 0],
+                      }),
+                    },
+                    {
+                      scale: languageAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.98, 1],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            >
+              {languageOptions.map((lang) => (
+                <Pressable
+                  key={lang}
+                  style={styles.languageMenuItem}
+                  onPress={() => setLanguage(lang)}
+                >
+                  <Text
+                    style={[
+                      styles.languageMenuText,
+                      i18n.language === lang && styles.languageMenuTextActive,
+                    ]}
+                  >
+                    {t(`common.lang_${lang}`)}
+                  </Text>
+                </Pressable>
+              ))}
+            </Animated.View>
+          )}
+        </View>
+      </View>
+    </View>
+  );
+
   if (role === "doctor") {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <ScrollView
-          contentContainerStyle={styles.container}
-          keyboardShouldPersistTaps="handled"
-        >
-          <Text style={styles.title}>Doctor Login</Text>
-          <Text style={styles.subtitle}>
-            Choose how you want to sign in.
-          </Text>
+        <View style={styles.screen}>
+          {renderLanguagePicker()}
+          <ScrollView
+            contentContainerStyle={styles.container}
+            keyboardShouldPersistTaps="handled"
+          >
+            <Text style={styles.title}>{t("auth.doctor_login_title")}</Text>
+            <Text style={styles.subtitle}>{t("auth.choose_signin")}</Text>
 
           <View style={styles.tabRow}>
             <Pressable
@@ -271,7 +382,7 @@ export default function AuthChoiceScreen({ navigation, route }) {
                   doctorMethod === "username" && styles.tabTextActive,
                 ]}
               >
-                Login with Username
+                {t("auth.username_login_title")}
               </Text>
             </Pressable>
             <Pressable
@@ -290,34 +401,36 @@ export default function AuthChoiceScreen({ navigation, route }) {
                   doctorMethod === "mobile" && styles.tabTextActive,
                 ]}
               >
-                Login with Mobile
+                {t("auth.login_with_mobile")}
               </Text>
             </Pressable>
           </View>
 
           {doctorMethod === "username" ? (
             <View style={styles.sectionCard}>
-              <Text style={styles.sectionTitle}>Username Login</Text>
+              <Text style={styles.sectionTitle}>
+                {t("auth.username_login_title")}
+              </Text>
               <Text style={styles.sectionSubtitle}>
-                Enter your doctor username and password.
+                {t("auth.username_login_subtitle")}
               </Text>
 
               <View style={styles.field}>
-                <Text style={styles.label}>Username</Text>
+                <Text style={styles.label}>{t("auth.username_label")}</Text>
                 <TextInput
                   style={styles.input}
                   onChangeText={setDoctorUsername}
-                  placeholder="doctor.username"
+                  placeholder={t("auth.username_placeholder")}
                   placeholderTextColor="#9CA3AF"
                   autoCapitalize="none"
                 />
               </View>
               <View style={styles.field}>
-                <Text style={styles.label}>Password</Text>
+                <Text style={styles.label}>{t("auth.password_label")}</Text>
                 <TextInput
                   style={styles.input}
                   onChangeText={setDoctorPassword}
-                  placeholder="Enter your password"
+                  placeholder={t("auth.password_placeholder")}
                   placeholderTextColor="#9CA3AF"
                   secureTextEntry
                 />
@@ -332,19 +445,21 @@ export default function AuthChoiceScreen({ navigation, route }) {
                 disabled={doctorLoginLoading}
               >
                 <Text style={styles.primaryButtonText}>
-                  {doctorLoginLoading ? "Signing in..." : "Login"}
+                  {doctorLoginLoading
+                    ? t("auth.signing_in")
+                    : t("auth.login")}
                 </Text>
               </Pressable>
             </View>
           ) : (
             <View style={styles.sectionCard}>
-              <Text style={styles.sectionTitle}>Mobile OTP</Text>
+              <Text style={styles.sectionTitle}>{t("auth.mobile_otp_title")}</Text>
               <Text style={styles.sectionSubtitle}>
-                Enter your mobile number to receive an OTP.
+                {t("auth.mobile_otp_subtitle")}
               </Text>
 
               <View style={styles.field}>
-                <Text style={styles.label}>Mobile Number</Text>
+                <Text style={styles.label}>{t("auth.mobile_number_label")}</Text>
                 <TextInput
                   style={styles.input}
                   value={doctorPhoneNumber}
@@ -353,7 +468,7 @@ export default function AuthChoiceScreen({ navigation, route }) {
                     setDoctorOtpSent(false);
                     setDoctorOtp("");
                   }}
-                  placeholder="00000 00000"
+                  placeholder={t("auth.mobile_placeholder")}
                   placeholderTextColor="#9CA3AF"
                   keyboardType="number-pad"
                   maxLength={10}
@@ -370,20 +485,20 @@ export default function AuthChoiceScreen({ navigation, route }) {
                   disabled={doctorOtpSending}
                 >
                   <Text style={styles.primaryButtonText}>
-                    {doctorOtpSending ? "Sending..." : "Send OTP"}
+                    {doctorOtpSending ? t("auth.sending") : t("auth.send_otp")}
                   </Text>
                 </Pressable>
               ) : (
                 <>
                   <View style={styles.field}>
-                    <Text style={styles.label}>Enter OTP</Text>
+                    <Text style={styles.label}>{t("auth.enter_otp_label")}</Text>
                     <TextInput
                       style={styles.input}
                       value={doctorOtp}
                       onChangeText={(value) =>
                         setDoctorOtp(value.replace(/[^0-9]/g, ""))
                       }
-                      placeholder="123456"
+                      placeholder={t("auth.otp_placeholder")}
                       placeholderTextColor="#9CA3AF"
                       keyboardType="number-pad"
                       maxLength={6}
@@ -398,7 +513,9 @@ export default function AuthChoiceScreen({ navigation, route }) {
                     disabled={doctorOtpVerifying}
                   >
                     <Text style={styles.primaryButtonText}>
-                      {doctorOtpVerifying ? "Verifying..." : "Verify OTP"}
+                      {doctorOtpVerifying
+                        ? t("auth.verifying")
+                        : t("auth.verify_otp")}
                     </Text>
                   </Pressable>
                 </>
@@ -408,15 +525,24 @@ export default function AuthChoiceScreen({ navigation, route }) {
 
           {status ? <Text style={styles.statusText}>{status}</Text> : null}
 
-          <View style={styles.footerRow}>
-            <Text style={styles.footerText}>New doctor?</Text>
+            <View style={styles.footerRow}>
+              <Text style={styles.footerText}>{t("auth.new_doctor")}</Text>
+              <Pressable
+                onPress={() =>
+                  navigation.navigate("AuthForm", { role, mode: "register" })
+                }
+              >
+                <Text style={styles.footerLink}>{t("auth.register_here")}</Text>
+              </Pressable>
+            </View>
+          </ScrollView>
+          {languageMenuOpen && (
             <Pressable
-              onPress={() => navigation.navigate("AuthForm", { role, mode: "register" })}
-            >
-              <Text style={styles.footerLink}>Register here</Text>
-            </Pressable>
-          </View>
-        </ScrollView>
+              style={styles.languageBackdrop}
+              onPress={closeLanguageMenu}
+            />
+          )}
+        </View>
       </SafeAreaView>
     );
   }
@@ -424,37 +550,48 @@ export default function AuthChoiceScreen({ navigation, route }) {
   if (role !== "patient") {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <View style={styles.container}>
-          <Text style={styles.title}>Continue as {roleLabel}</Text>
-          <Text style={styles.subtitle}>
-            Choose how you want to access the app.
-          </Text>
+        <View style={styles.screen}>
+          {renderLanguagePicker()}
+          <View style={styles.container}>
+            <Text style={styles.title}>
+              {t("auth.role_continue_title", { role: roleLabel })}
+            </Text>
+            <Text style={styles.subtitle}>
+              {t("auth.role_continue_subtitle")}
+            </Text>
 
-          <View style={styles.cardStack}>
-            <Pressable
-              style={[styles.card, styles.cardPrimary]}
-              onPress={() =>
-                navigation.navigate("AuthForm", { role, mode: "login" })
-              }
-            >
-              <Text style={styles.cardTitle}>{roleLabel} Login</Text>
-              <Text style={styles.cardText}>
-                Already have an account? Sign in to continue.
-              </Text>
-            </Pressable>
+            <View style={styles.cardStack}>
+              <Pressable
+                style={[styles.card, styles.cardPrimary]}
+                onPress={() =>
+                  navigation.navigate("AuthForm", { role, mode: "login" })
+                }
+              >
+                <Text style={styles.cardTitle}>{roleLabel} Login</Text>
+                <Text style={styles.cardText}>
+                  {t("auth.role_login_subtitle")}
+                </Text>
+              </Pressable>
 
-            <Pressable
-              style={[styles.card, styles.cardSecondary]}
-              onPress={() =>
-                navigation.navigate("AuthForm", { role, mode: "register" })
-              }
-            >
-              <Text style={styles.cardTitle}>{roleLabel} Register</Text>
-              <Text style={styles.cardText}>
-                Create a new account to get started.
-              </Text>
-            </Pressable>
+              <Pressable
+                style={[styles.card, styles.cardSecondary]}
+                onPress={() =>
+                  navigation.navigate("AuthForm", { role, mode: "register" })
+                }
+              >
+                <Text style={styles.cardTitle}>{roleLabel} Register</Text>
+                <Text style={styles.cardText}>
+                  {t("auth.role_register_subtitle")}
+                </Text>
+              </Pressable>
+            </View>
           </View>
+          {languageMenuOpen && (
+            <Pressable
+              style={styles.languageBackdrop}
+              onPress={closeLanguageMenu}
+            />
+          )}
         </View>
       </SafeAreaView>
     );
@@ -462,14 +599,14 @@ export default function AuthChoiceScreen({ navigation, route }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView
-        contentContainerStyle={styles.container}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Text style={styles.title}>Patient Login</Text>
-        <Text style={styles.subtitle}>
-          Choose how you want to verify your identity.
-        </Text>
+      <View style={styles.screen}>
+        {renderLanguagePicker()}
+        <ScrollView
+          contentContainerStyle={styles.container}
+          keyboardShouldPersistTaps="handled"
+        >
+        <Text style={styles.title}>{t("auth.patient_login_title")}</Text>
+        <Text style={styles.subtitle}>{t("auth.choose_verify")}</Text>
 
         <View style={styles.tabRow}>
           <Pressable
@@ -485,7 +622,7 @@ export default function AuthChoiceScreen({ navigation, route }) {
                 patientMethod === "abha" && styles.tabTextActive,
               ]}
             >
-              Login with ABHA ID
+              {t("auth.login_with_abha")}
             </Text>
           </Pressable>
           <Pressable
@@ -501,16 +638,16 @@ export default function AuthChoiceScreen({ navigation, route }) {
                 patientMethod === "mobile" && styles.tabTextActive,
               ]}
             >
-              Login with Mobile
+              {t("auth.login_with_mobile")}
             </Text>
           </Pressable>
         </View>
 
         {patientMethod === "abha" ? (
           <View style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>ABHA Verification</Text>
+            <Text style={styles.sectionTitle}>{t("auth.abha_verification")}</Text>
             <Text style={styles.sectionSubtitle}>
-              Enter your ABHA ID or upload your ABHA card.
+              {t("auth.abha_subtitle")}
             </Text>
 
             <View style={styles.subTabRow}>
@@ -530,7 +667,7 @@ export default function AuthChoiceScreen({ navigation, route }) {
                     abhaMode === "id" && styles.subTabTextActive,
                   ]}
                 >
-                  Enter ABHA ID
+                  {t("auth.enter_abha_id")}
                 </Text>
               </Pressable>
               <Pressable
@@ -549,19 +686,19 @@ export default function AuthChoiceScreen({ navigation, route }) {
                     abhaMode === "upload" && styles.subTabTextActive,
                   ]}
                 >
-                  Upload ABHA Card
+                  {t("auth.upload_abha_card")}
                 </Text>
               </Pressable>
             </View>
 
             {abhaMode === "id" ? (
               <View style={styles.field}>
-                <Text style={styles.label}>ABHA ID</Text>
+                <Text style={styles.label}>{t("auth.abha_id_label")}</Text>
                 <TextInput
                   style={styles.input}
                   value={abhaId}
                   onChangeText={setAbhaId}
-                  placeholder="XXXX-XXXX-XXXX"
+                  placeholder={t("auth.abha_id_placeholder")}
                   placeholderTextColor="#9CA3AF"
                   autoCapitalize="none"
                 />
@@ -573,13 +710,17 @@ export default function AuthChoiceScreen({ navigation, route }) {
                     style={styles.uploadButton}
                     onPress={handleGalleryPick}
                   >
-                    <Text style={styles.uploadButtonText}>Upload from Gallery</Text>
+                    <Text style={styles.uploadButtonText}>
+                      {t("auth.upload_gallery")}
+                    </Text>
                   </Pressable>
                   <Pressable
                     style={[styles.uploadButton, styles.uploadButtonSecondary]}
                     onPress={handleCameraPick}
                   >
-                    <Text style={styles.uploadButtonText}>Take a Photo</Text>
+                    <Text style={styles.uploadButtonText}>
+                      {t("auth.take_photo")}
+                    </Text>
                   </Pressable>
                 </View>
                 {abhaImage?.uri ? (
@@ -592,7 +733,7 @@ export default function AuthChoiceScreen({ navigation, route }) {
                   </View>
                 ) : (
                   <Text style={styles.helperText}>
-                    Upload a clear image of your ABHA card.
+                    {t("auth.upload_hint")}
                   </Text>
                 )}
               </View>
@@ -604,19 +745,19 @@ export default function AuthChoiceScreen({ navigation, route }) {
               disabled={abhaLoading}
             >
               <Text style={styles.primaryButtonText}>
-                {abhaLoading ? "Processing..." : "Continue"}
+                {abhaLoading ? t("auth.processing") : t("auth.continue")}
               </Text>
             </Pressable>
           </View>
         ) : (
           <View style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>Mobile OTP</Text>
+            <Text style={styles.sectionTitle}>{t("auth.mobile_otp_title")}</Text>
             <Text style={styles.sectionSubtitle}>
-              Enter your mobile number to receive an OTP.
+              {t("auth.mobile_otp_subtitle")}
             </Text>
 
             <View style={styles.field}>
-              <Text style={styles.label}>Mobile Number</Text>
+              <Text style={styles.label}>{t("auth.mobile_number_label")}</Text>
               <TextInput
                 style={styles.input}
                 value={phoneNumber}
@@ -625,7 +766,7 @@ export default function AuthChoiceScreen({ navigation, route }) {
                   setOtpSent(false);
                   setOtp("");
                 }}
-                placeholder="00000 00000"
+                placeholder={t("auth.mobile_placeholder")}
                 placeholderTextColor="#9CA3AF"
                 keyboardType="number-pad"
                 maxLength={10}
@@ -639,20 +780,20 @@ export default function AuthChoiceScreen({ navigation, route }) {
                 disabled={otpSending}
               >
                 <Text style={styles.primaryButtonText}>
-                  {otpSending ? "Sending..." : "Send OTP"}
+                  {otpSending ? t("auth.sending") : t("auth.send_otp")}
                 </Text>
               </Pressable>
             ) : (
               <>
                 <View style={styles.field}>
-                  <Text style={styles.label}>Enter OTP</Text>
+                  <Text style={styles.label}>{t("auth.enter_otp_label")}</Text>
                   <TextInput
                     style={styles.input}
                     value={otp}
                     onChangeText={(value) =>
                       setOtp(value.replace(/[^0-9]/g, ""))
                     }
-                    placeholder="123456"
+                    placeholder={t("auth.otp_placeholder")}
                     placeholderTextColor="#9CA3AF"
                     keyboardType="number-pad"
                     maxLength={6}
@@ -664,7 +805,7 @@ export default function AuthChoiceScreen({ navigation, route }) {
                   disabled={otpVerifying}
                 >
                   <Text style={styles.primaryButtonText}>
-                    {otpVerifying ? "Verifying..." : "Verify OTP"}
+                    {otpVerifying ? t("auth.verifying") : t("auth.verify_otp")}
                   </Text>
                 </Pressable>
               </>
@@ -672,8 +813,15 @@ export default function AuthChoiceScreen({ navigation, route }) {
           </View>
         )}
 
-        {status ? <Text style={styles.statusText}>{status}</Text> : null}
-      </ScrollView>
+          {status ? <Text style={styles.statusText}>{status}</Text> : null}
+        </ScrollView>
+        {languageMenuOpen && (
+          <Pressable
+            style={styles.languageBackdrop}
+            onPress={closeLanguageMenu}
+          />
+        )}
+      </View>
     </SafeAreaView>
   );
 }
@@ -683,11 +831,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#FFFFFF",
   },
+  screen: {
+    flex: 1,
+    position: "relative",
+  },
   container: {
     flexGrow: 1,
+    flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 32,
+    paddingVertical: 32,
+    justifyContent: "center",
   },
   title: {
     fontSize: 24,
@@ -698,6 +851,79 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontSize: 15,
     color: "#6B7280",
+  },
+  languageFloating: {
+    position: "absolute",
+    top: 12,
+    right: 16,
+    zIndex: 10,
+  },
+  languageRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: 12,
+  },
+  languageLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#64748B",
+  },
+  languageDropdownWrap: {
+    alignItems: "flex-end",
+    position: "relative",
+  },
+  languageDropdownTrigger: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#DDE7E5",
+    backgroundColor: "#FFFFFF",
+  },
+  languageDropdownText: {
+    fontSize: 12.5,
+    fontWeight: "700",
+    color: "#1F2937",
+  },
+  languageChevron: {
+    fontSize: 12,
+    color: "#64748B",
+  },
+  languageDropdownMenu: {
+    position: "absolute",
+    top: 40,
+    right: 0,
+    width: 150,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E6F2F0",
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 6,
+    zIndex: 10,
+  },
+  languageBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 5,
+  },
+  languageMenuItem: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  languageMenuText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#1F2937",
+  },
+  languageMenuTextActive: {
+    color: "#0F766E",
   },
   cardStack: {
     marginTop: 24,
