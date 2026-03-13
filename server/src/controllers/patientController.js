@@ -1,4 +1,5 @@
 import Patient from '../models/Patient.js';
+import Appointment from '../models/Appointment.js';
 import { signToken } from '../utils/jwt.js';
 
 const generateToken = (id, role) => {
@@ -153,6 +154,34 @@ export const getPatientMe = async (req, res) => {
             : [];
         const recent = consultations.length > 0 ? consultations[0] : null;
 
+        const reports = consultations
+            .flatMap((consultation) => consultation?.labTests || [])
+            .filter((lab) => lab?.reportUrl || lab?.reportId)
+            .map((lab) => ({
+                reportId: lab.reportId || null,
+                testName: lab.testName || 'Lab Report',
+                date: lab.date || null,
+                status: lab.status || null,
+                impression: lab.impression || null,
+                reportUrl: lab.reportUrl || null
+            }));
+
+        const appointments = await Appointment.find({ patient: req.user._id })
+            .populate('doctor', 'name hospitalName')
+            .sort({ createdAt: -1 });
+
+        const appointmentHistory = appointments.map((appt) => ({
+            _id: appt._id,
+            doctorName: appt.doctor?.name || 'Doctor',
+            hospitalName: appt.doctor?.hospitalName || null,
+            appointmentType: appt.appointmentType,
+            preferredDate: appt.preferredDate,
+            preferredTime: appt.preferredTime,
+            status: appt.status,
+            summary: appt.conversationSummary || appt.aiSummary || '',
+            notes: appt.conversationInsights || ''
+        }));
+
         const fullAddressParts = [
             address.addressLine,
             address.village,
@@ -205,7 +234,12 @@ export const getPatientMe = async (req, res) => {
                   }
                 : null,
             // Location (used for nearby search)
-            locationCoordinates: patient.locationCoordinates
+            locationCoordinates: patient.locationCoordinates,
+            // Full health records and history
+            health_records: health,
+            consultations,
+            reports,
+            appointmentHistory
         });
     } catch (error) {
         res.status(500).json({ message: error.message });

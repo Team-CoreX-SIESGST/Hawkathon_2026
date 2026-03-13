@@ -17,17 +17,21 @@ import AbhaSevakProfile from "../screens/AbhaSevakProfile";
 import PatientConsultScreen from "../screens/PatientConsultScreen";
 import MedicineAvailabilityScreen from "../screens/MedicineAvailabilityScreen";
 import MedicineRecordsScreen from "../screens/MedicineRecordsScreen";
+import HealthRecordsScreen from "../screens/HealthRecordsScreen";
 import DoctorAppointmentsScreen from "../screens/DoctorAppointmentsScreen";
 import CallScreen from "../screens/CallScreen";
 import DoctorNotificationsScreen from "../screens/DoctorNotificationsScreen";
 import DoctorPastPatientsScreen from "../screens/DoctorPastPatientsScreen";
 import VideoCallScreen from "../screens/VideoCallScreen";
+import IncomingCallListener from "../components/IncomingCallListener";
 
 const Stack = createNativeStackNavigator();
+const navigationRef = React.createRef();
 
 export default function AppNavigator() {
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
+      <IncomingCallListener navigationRef={navigationRef} />
       <Stack.Navigator initialRouteName="Splash">
         <Stack.Screen
           name="Splash"
@@ -95,6 +99,11 @@ export default function AppNavigator() {
         <Stack.Screen
           name="MedicineRecords"
           component={MedicineRecordsScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="HealthRecords"
+          component={HealthRecordsScreen}
           options={{ headerShown: false }}
         />
         <Stack.Screen

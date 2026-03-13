@@ -25,7 +25,7 @@ const quickActions = [
 const bottomNavItems = [
   { label: "Home", icon: "home" },
   { label: "Consult", icon: "message-circle", route: "PatientConsult" },
-  { label: "Records", icon: "file-text", route: "MedicineRecords" },
+  { label: "Records", icon: "file-text", route: "HealthRecords" },
   { label: "Profile", icon: "user", route: "PatientProfile" },
 ];
 
@@ -140,13 +140,17 @@ export default function PatientDashboardMock() {
               key={item.title}
               style={styles.quickCard}
               activeOpacity={0.8}
-              onPress={() => {
-                if (item.title === "Talk to Doctor") {
-                  navigation.navigate("Chat");
-                  return;
-                }
-                Alert.alert("Quick Action", `${item.title} tapped`);
-              }}
+            onPress={() => {
+              if (item.title === "Talk to Doctor") {
+                navigation.navigate("Chat");
+                return;
+              }
+              if (item.title === "Health Records") {
+                navigation.navigate("HealthRecords");
+                return;
+              }
+              Alert.alert("Quick Action", `${item.title} tapped`);
+            }}
             >
               <View style={styles.quickIconCircle}>
                 <Text style={styles.quickIconText}>{item.icon}</Text>

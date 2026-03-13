@@ -16,7 +16,6 @@ import {
   cancelAppointment,
   structureAppointment,
 } from "../services/api";
-import { getCalendlyLink } from "../services/callLinks";
 
 export default function PatientConsultScreen({ navigation }) {
   const { token, user } = useContext(AuthContext);
@@ -299,9 +298,14 @@ export default function PatientConsultScreen({ navigation }) {
         appointments.map((appt) => (
           <View key={appt._id} style={styles.appointmentCard}>
             <View style={styles.appointmentHeader}>
-              <Text style={styles.appointmentTitle}>
-                {appt.doctor?.name || "Doctor"}
-              </Text>
+              <View>
+                <Text style={styles.appointmentTitle}>
+                  {appt.doctor?.name || "Doctor"}
+                </Text>
+                <Text style={styles.appointmentMeta}>
+                  {appt.preferredDate} · {appt.preferredTime}
+                </Text>
+              </View>
               {appt.appointmentType ? (
                 <View style={styles.typeBadge}>
                   <Text style={styles.typeBadgeText}>
@@ -313,33 +317,24 @@ export default function PatientConsultScreen({ navigation }) {
             <Text style={styles.appointmentProblem}>
               {appt.problem || "Appointment"}
             </Text>
-            <Text style={styles.appointmentMeta}>
-              {appt.preferredDate}  {appt.preferredTime}
-            </Text>
-            <Text style={styles.appointmentMeta}>
-              Status: {appt.status}
-            </Text>
-            {appt.appointmentType === "VIDEO_CALL" ||
-            appt.appointmentType === "AUDIO_CALL" ? (
+            <View style={styles.appointmentStatusRow}>
+              <Text style={styles.appointmentStatusLabel}>Status</Text>
+              <Text style={styles.appointmentStatusValue}>{appt.status}</Text>
+            </View>
+            {appt.status === "IN_CALL" ? (
               <Pressable
                 style={styles.callButton}
-                onPress={() => {
-                  const url =
-                    appt.videoLink || getCalendlyLink(appt.appointmentType);
-                  navigation.navigate("CallScreen", {
-                    url,
-                    title:
-                      appt.appointmentType === "AUDIO_CALL"
-                        ? "Schedule Audio Call"
-                        : "Schedule Video Call",
-                  });
-                }}
+                onPress={() =>
+                  navigation.navigate("VideoCall", {
+                    roomId: appt._id,
+                    userRole: "patient",
+                    userName: user?.abha_profile?.name || user?.name,
+                    remoteName: appt.doctor?.name || "Doctor",
+                    callType: appt.appointmentType,
+                  })
+                }
               >
-                <Text style={styles.callButtonText}>
-                  {appt.appointmentType === "AUDIO_CALL"
-                    ? "Open Audio Call"
-                    : "Open Video Call"}
-                </Text>
+                <Text style={styles.callButtonText}>Join Call</Text>
               </Pressable>
             ) : null}
             {appt.status === "BOOKED" ? (
@@ -513,10 +508,10 @@ const styles = StyleSheet.create({
   appointmentCard: {
     marginTop: 12,
     padding: 14,
-    borderRadius: 14,
+    borderRadius: 18,
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: "#E6EEF0",
   },
   appointmentTitle: {
     fontWeight: "700",
@@ -546,6 +541,27 @@ const styles = StyleSheet.create({
   appointmentMeta: {
     marginTop: 4,
     color: "#64748B",
+  },
+  appointmentStatusRow: {
+    marginTop: 10,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  appointmentStatusLabel: {
+    fontSize: 12,
+    color: "#94A3B8",
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    fontWeight: "600",
+  },
+  appointmentStatusValue: {
+    color: "#0F172A",
+    fontWeight: "700",
   },
   cancelButton: {
     marginTop: 10,

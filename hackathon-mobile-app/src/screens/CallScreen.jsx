@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import {
   SafeAreaView,
   StyleSheet,
@@ -8,11 +8,20 @@ import {
   Platform,
   Linking,
 } from "react-native";
-import { WebView } from "react-native-webview";
+
+const getWebView = () => {
+  if (Platform.OS === "web") return null;
+  try {
+    return require("react-native-webview").WebView;
+  } catch {
+    return null;
+  }
+};
 
 export default function CallScreen({ route }) {
   const url = route?.params?.url || "https://calendly.com/suthakaranburaj";
   const title = route?.params?.title || "Call";
+  const WebView = useMemo(() => getWebView(), []);
 
   useEffect(() => {
     if (Platform.OS === "web") {
@@ -25,7 +34,7 @@ export default function CallScreen({ route }) {
       <View style={styles.header}>
         <Text style={styles.headerText}>{title}</Text>
       </View>
-      {Platform.OS === "web" ? (
+      {Platform.OS === "web" || !WebView ? (
         <View style={styles.webFallback}>
           <Text style={styles.webFallbackText}>
             Opening the scheduling page in a new tab.
