@@ -6,7 +6,6 @@ import {
   ScrollView,
   TextInput,
   Pressable,
-  Modal,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { AuthContext } from "../context/AuthContext";
@@ -16,10 +15,8 @@ import {
   getMyAppointments,
   cancelAppointment,
   structureAppointment,
-  patientNotifications,
-  patientReadNotification,
 } from "../services/api";
-import { createSocket } from "../services/socket";
+import { getCalendlyLink } from "../services/callLinks";
 
 export default function PatientConsultScreen({ navigation }) {
   const { token, user } = useContext(AuthContext);
@@ -35,9 +32,7 @@ export default function PatientConsultScreen({ navigation }) {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [notifications, setNotifications] = useState([]);
   const [slotsOpen, setSlotsOpen] = useState(false);
-  const [incomingCall, setIncomingCall] = useState(null);
 
   const coords = useMemo(() => user?.locationCoordinates, [user]);
 
@@ -61,37 +56,10 @@ export default function PatientConsultScreen({ navigation }) {
     }
   };
 
-  const loadNotifications = async () => {
-    if (!token) return;
-    try {
-      const data = await patientNotifications(token);
-      setNotifications(data.results || []);
-    } catch (err) {
-      setNotifications([]);
-    }
-  };
-
   useEffect(() => {
     loadDoctors();
     loadAppointments();
-    loadNotifications();
   }, []);
-
-  useEffect(() => {
-    if (!user?._id) return;
-    const socket = createSocket();
-    socket.emit("register-user", {
-      userId: user._id,
-      role: "patient",
-      name: user?.abha_profile?.name || user?.name,
-    });
-    socket.on("incoming-call", (payload) => {
-      setIncomingCall(payload);
-    });
-    return () => {
-      socket.disconnect();
-    };
-  }, [user?._id]);
 
   const handleBook = async () => {
     if (!selectedDoctor) {
@@ -351,6 +319,29 @@ export default function PatientConsultScreen({ navigation }) {
             <Text style={styles.appointmentMeta}>
               Status: {appt.status}
             </Text>
+            {appt.appointmentType === "VIDEO_CALL" ||
+            appt.appointmentType === "AUDIO_CALL" ? (
+              <Pressable
+                style={styles.callButton}
+                onPress={() => {
+                  const url =
+                    appt.videoLink || getCalendlyLink(appt.appointmentType);
+                  navigation.navigate("CallScreen", {
+                    url,
+                    title:
+                      appt.appointmentType === "AUDIO_CALL"
+                        ? "Schedule Audio Call"
+                        : "Schedule Video Call",
+                  });
+                }}
+              >
+                <Text style={styles.callButtonText}>
+                  {appt.appointmentType === "AUDIO_CALL"
+                    ? "Open Audio Call"
+                    : "Open Video Call"}
+                </Text>
+              </Pressable>
+            ) : null}
             {appt.status === "BOOKED" ? (
               <Pressable
                 style={styles.cancelButton}
@@ -363,69 +354,6 @@ export default function PatientConsultScreen({ navigation }) {
         ))
       )}
 
-      <Text style={styles.sectionTitle}>Notifications</Text>
-      {notifications.length === 0 ? (
-        <Text style={styles.helperText}>No notifications.</Text>
-      ) : (
-        notifications.map((note) => (
-          <View key={note._id} style={styles.notificationCard}>
-            <Text style={styles.notificationText}>{note.message}</Text>
-            {note?.data?.videoLink ? (
-              <Pressable
-                style={styles.callButton}
-                onPress={async () => {
-                  await patientReadNotification(token, note._id);
-                  navigation.navigate("CallScreen", {
-                    url: note.data.videoLink,
-                    title: "Incoming Call",
-                  });
-                }}
-              >
-                <Text style={styles.callButtonText}>Join Call</Text>
-              </Pressable>
-            ) : null}
-          </View>
-        ))
-      )}
-
-      <Modal visible={!!incomingCall} transparent animationType="slide">
-        <View style={styles.callOverlay}>
-          <View style={styles.callCard}>
-            <Text style={styles.callTitle}>
-              Incoming{" "}
-              {incomingCall?.callType === "AUDIO_CALL" ? "Audio" : "Video"} Call
-            </Text>
-            <Text style={styles.callSubtitle}>
-              {incomingCall?.fromName || "Doctor"} is calling you
-            </Text>
-            <View style={styles.callActions}>
-              <Pressable
-                style={[styles.callActionButton, styles.callDecline]}
-                onPress={() => setIncomingCall(null)}
-              >
-                <Text style={styles.callDeclineText}>Decline</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.callActionButton, styles.callAccept]}
-                onPress={() => {
-                  const roomId = incomingCall?.roomId;
-                  setIncomingCall(null);
-                  if (roomId) {
-                    navigation.navigate("VideoCall", {
-                      roomId,
-                      userRole: "patient",
-                      userName: user?.abha_profile?.name || user?.name,
-                      remoteName: incomingCall?.fromName,
-                    });
-                  }
-                }}
-              >
-                <Text style={styles.callAcceptText}>Accept</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </ScrollView>
   );
 }
@@ -639,17 +567,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
     color: "#DC2626",
   },
-  notificationCard: {
-    marginTop: 12,
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-  },
-  notificationText: {
-    color: "#0F172A",
-  },
   callButton: {
     marginTop: 10,
     paddingVertical: 8,
@@ -658,53 +575,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   callButtonText: {
-    color: "#FFFFFF",
-    fontWeight: "700",
-  },
-  callOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(15,23,42,0.7)",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 24,
-  },
-  callCard: {
-    width: "100%",
-    borderRadius: 20,
-    backgroundColor: "#FFFFFF",
-    padding: 20,
-  },
-  callTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#0F172A",
-  },
-  callSubtitle: {
-    marginTop: 6,
-    color: "#64748B",
-  },
-  callActions: {
-    marginTop: 16,
-    flexDirection: "row",
-    gap: 12,
-  },
-  callActionButton: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  callDecline: {
-    backgroundColor: "#FEE2E2",
-  },
-  callDeclineText: {
-    color: "#B91C1C",
-    fontWeight: "700",
-  },
-  callAccept: {
-    backgroundColor: "#0F172A",
-  },
-  callAcceptText: {
     color: "#FFFFFF",
     fontWeight: "700",
   },
