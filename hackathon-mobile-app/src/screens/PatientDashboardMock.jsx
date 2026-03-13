@@ -11,6 +11,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  Linking,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 
@@ -80,6 +81,10 @@ export default function PatientDashboardMock() {
       ? require("../../assets/female-icon.png")
       : require("../../assets/male-icon.png");
 
+  const handleVapiCall = () => {
+    navigation.navigate("VapiCall");
+  };
+
   const handleLogout = () => {
     setMenuOpen(false);
     signOut();
@@ -143,6 +148,10 @@ export default function PatientDashboardMock() {
               onPress={() => {
                 if (item.title === "Talk to Doctor") {
                   navigation.navigate("Chat");
+                  return;
+                }
+                if (item.title === "Call with Ai") {
+                  handleVapiCall();
                   return;
                 }
                 Alert.alert("Quick Action", `${item.title} tapped`);

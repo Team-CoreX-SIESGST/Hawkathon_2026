@@ -22,6 +22,7 @@ import CallScreen from "../screens/CallScreen";
 import DoctorNotificationsScreen from "../screens/DoctorNotificationsScreen";
 import DoctorPastPatientsScreen from "../screens/DoctorPastPatientsScreen";
 import VideoCallScreen from "../screens/VideoCallScreen";
+import VapiCallScreen from "../screens/VapiCallScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -105,6 +106,11 @@ export default function AppNavigator() {
         <Stack.Screen
           name="CallScreen"
           component={CallScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="VapiCall"
+          component={VapiCallScreen}
           options={{ headerShown: false }}
         />
         <Stack.Screen
