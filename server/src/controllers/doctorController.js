@@ -36,7 +36,21 @@ const haversineKm = (a, b) => {
 // @access  Public
 export const registerDoctor = async (req, res) => {
     try {
-        const { name, username, password, hospitalName, locationCoordinates, phoneNumber } = req.body;
+        const {
+            name,
+            username,
+            password,
+            hospitalName,
+            locationCoordinates,
+            phoneNumber,
+            specialization,
+            qualification,
+            registrationId,
+            experienceYears,
+            about,
+            languages,
+            availability
+        } = req.body;
         const parsedLocation = parseLocation(locationCoordinates);
 
         if (!name || !username || !password || !hospitalName || !parsedLocation) {
@@ -53,6 +67,13 @@ export const registerDoctor = async (req, res) => {
             username,
             password,
             phoneNumber: normalizePhone(phoneNumber) || undefined,
+            specialization,
+            qualification,
+            registrationId,
+            experienceYears,
+            about,
+            languages,
+            availability,
             hospitalName,
             locationCoordinates: parsedLocation
         });
@@ -62,6 +83,13 @@ export const registerDoctor = async (req, res) => {
             name: doctor.name,
             username: doctor.username,
             phoneNumber: doctor.phoneNumber,
+            specialization: doctor.specialization,
+            qualification: doctor.qualification,
+            registrationId: doctor.registrationId,
+            experienceYears: doctor.experienceYears,
+            about: doctor.about,
+            languages: doctor.languages,
+            availability: doctor.availability,
             hospitalName: doctor.hospitalName,
             locationCoordinates: doctor.locationCoordinates,
             token: generateToken(doctor._id, 'doctor')
@@ -88,6 +116,13 @@ export const loginDoctor = async (req, res) => {
             name: doctor.name,
             username: doctor.username,
             phoneNumber: doctor.phoneNumber,
+            specialization: doctor.specialization,
+            qualification: doctor.qualification,
+            registrationId: doctor.registrationId,
+            experienceYears: doctor.experienceYears,
+            about: doctor.about,
+            languages: doctor.languages,
+            availability: doctor.availability,
             hospitalName: doctor.hospitalName,
             locationCoordinates: doctor.locationCoordinates,
             token: generateToken(doctor._id, 'doctor')
@@ -108,6 +143,15 @@ export const updateDoctor = async (req, res) => {
         const updates = {};
         if (req.body.name) updates.name = req.body.name;
         if (req.body.hospitalName) updates.hospitalName = req.body.hospitalName;
+        if (req.body.specialization) updates.specialization = req.body.specialization;
+        if (req.body.qualification) updates.qualification = req.body.qualification;
+        if (req.body.registrationId) updates.registrationId = req.body.registrationId;
+        if (typeof req.body.experienceYears === 'number') {
+            updates.experienceYears = req.body.experienceYears;
+        }
+        if (req.body.about) updates.about = req.body.about;
+        if (Array.isArray(req.body.languages)) updates.languages = req.body.languages;
+        if (req.body.availability) updates.availability = req.body.availability;
 
         if (req.body.locationCoordinates) {
             const parsedLocation = parseLocation(req.body.locationCoordinates);
@@ -125,6 +169,14 @@ export const updateDoctor = async (req, res) => {
             _id: doctor._id,
             name: doctor.name,
             username: doctor.username,
+            phoneNumber: doctor.phoneNumber,
+            specialization: doctor.specialization,
+            qualification: doctor.qualification,
+            registrationId: doctor.registrationId,
+            experienceYears: doctor.experienceYears,
+            about: doctor.about,
+            languages: doctor.languages,
+            availability: doctor.availability,
             hospitalName: doctor.hospitalName,
             locationCoordinates: doctor.locationCoordinates
         });
@@ -141,6 +193,14 @@ export const getDoctorMe = async (req, res) => {
         _id: req.user._id,
         name: req.user.name,
         username: req.user.username,
+        phoneNumber: req.user.phoneNumber,
+        specialization: req.user.specialization,
+        qualification: req.user.qualification,
+        registrationId: req.user.registrationId,
+        experienceYears: req.user.experienceYears,
+        about: req.user.about,
+        languages: req.user.languages,
+        availability: req.user.availability,
         hospitalName: req.user.hospitalName,
         locationCoordinates: req.user.locationCoordinates
     });
@@ -178,6 +238,11 @@ export const getDoctorsNearby = async (req, res) => {
                 _id: item.doctor._id,
                 name: item.doctor.name,
                 username: item.doctor.username,
+                phoneNumber: item.doctor.phoneNumber,
+                specialization: item.doctor.specialization,
+                experienceYears: item.doctor.experienceYears,
+                availability: item.doctor.availability,
+                languages: item.doctor.languages || [],
                 hospitalName: item.doctor.hospitalName,
                 locationCoordinates: item.doctor.locationCoordinates,
                 availableSlots: item.doctor.availableSlots || [],

@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useMemo, useState } from "react";
+import { SafeAreaView } from "react-native-safe-area-context";
 import {
   StyleSheet,
   Text,
@@ -135,11 +136,12 @@ export default function PatientConsultScreen({ navigation }) {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Consult</Text>
-      <Text style={styles.subtitle}>
-        Book an appointment with doctors near you.
-      </Text>
+    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.title}>Consult</Text>
+        <Text style={styles.subtitle}>
+          Book an appointment with doctors near you.
+        </Text>
 
       <Text style={styles.sectionTitle}>Nearby Doctors</Text>
       {doctors.length === 0 ? (
@@ -302,91 +304,95 @@ export default function PatientConsultScreen({ navigation }) {
       </Pressable>
 
       <Text style={styles.sectionTitle}>My Appointments</Text>
-      {appointments.length === 0 ? (
-        <Text style={styles.helperText}>No appointments yet.</Text>
-      ) : (
-        appointments.map((appt) => (
-          <View key={appt._id} style={styles.appointmentCard}>
-            <View style={styles.appointmentHeader}>
-              <View>
-                <Text style={styles.appointmentTitle}>
-                  {appt.doctor?.name || "Doctor"}
-                </Text>
-                <Text style={styles.appointmentMeta}>
-                  {appt.preferredDate} · {appt.preferredTime}
-                </Text>
-              </View>
-              {appt.appointmentType ? (
-                <View style={styles.typeBadge}>
-                  <Text style={styles.typeBadgeText}>
-                    {appt.appointmentType.replace("_", " ")}
+        {appointments.length === 0 ? (
+          <Text style={styles.helperText}>No appointments yet.</Text>
+        ) : (
+          appointments.map((appt) => (
+            <View key={appt._id} style={styles.appointmentCard}>
+              <View style={styles.appointmentHeader}>
+                <View>
+                  <Text style={styles.appointmentTitle}>
+                    {appt.doctor?.name || "Doctor"}
+                  </Text>
+                  <Text style={styles.appointmentMeta}>
+                    {appt.preferredDate} · {appt.preferredTime}
                   </Text>
                 </View>
+                {appt.appointmentType ? (
+                  <View style={styles.typeBadge}>
+                    <Text style={styles.typeBadgeText}>
+                      {appt.appointmentType.replace("_", " ")}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+              <Text style={styles.appointmentProblem}>
+                {appt.problem || "Appointment"}
+              </Text>
+              <View style={styles.appointmentStatusRow}>
+                <Text style={styles.appointmentStatusLabel}>Status</Text>
+                <Text style={styles.appointmentStatusValue}>{appt.status}</Text>
+              </View>
+              {appt.status === "IN_CALL" ? (
+                <Pressable
+                  style={styles.callButton}
+                  onPress={() =>
+                    navigation.navigate("CallScreen", {
+                      url:
+                        appt.videoLink ||
+                        getCalendlyLink(appt.appointmentType || "VIDEO_CALL"),
+                      title:
+                        appt.appointmentType === "AUDIO_CALL"
+                          ? "Join Audio Call"
+                          : "Join Video Call",
+                    })
+                  }
+                >
+                  <Text style={styles.callButtonText}>Join Call</Text>
+                </Pressable>
+              ) : null}
+              {appt.status === "BOOKED" &&
+              (appt.appointmentType === "VIDEO_CALL" ||
+                appt.appointmentType === "AUDIO_CALL") &&
+              isToday(appt.preferredDate) ? (
+                <Pressable
+                  style={styles.callButtonAlt}
+                  onPress={() =>
+                    navigation.navigate("CallScreen", {
+                      url:
+                        appt.videoLink ||
+                        getCalendlyLink(appt.appointmentType || "VIDEO_CALL"),
+                      title:
+                        appt.appointmentType === "AUDIO_CALL"
+                          ? "Start Audio Call"
+                          : "Start Video Call",
+                    })
+                  }
+                >
+                  <Text style={styles.callButtonAltText}>Start Call</Text>
+                </Pressable>
+              ) : null}
+              {appt.status === "BOOKED" ? (
+                <Pressable
+                  style={styles.cancelButton}
+                  onPress={() => handleCancel(appt._id)}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </Pressable>
               ) : null}
             </View>
-            <Text style={styles.appointmentProblem}>
-              {appt.problem || "Appointment"}
-            </Text>
-            <View style={styles.appointmentStatusRow}>
-              <Text style={styles.appointmentStatusLabel}>Status</Text>
-              <Text style={styles.appointmentStatusValue}>{appt.status}</Text>
-            </View>
-            {appt.status === "IN_CALL" ? (
-              <Pressable
-                style={styles.callButton}
-                onPress={() =>
-                  navigation.navigate("CallScreen", {
-                    url:
-                      appt.videoLink ||
-                      getCalendlyLink(appt.appointmentType || "VIDEO_CALL"),
-                    title:
-                      appt.appointmentType === "AUDIO_CALL"
-                        ? "Join Audio Call"
-                        : "Join Video Call",
-                  })
-                }
-              >
-                <Text style={styles.callButtonText}>Join Call</Text>
-              </Pressable>
-            ) : null}
-            {appt.status === "BOOKED" &&
-            (appt.appointmentType === "VIDEO_CALL" ||
-              appt.appointmentType === "AUDIO_CALL") &&
-            isToday(appt.preferredDate) ? (
-              <Pressable
-                style={styles.callButtonAlt}
-                onPress={() =>
-                  navigation.navigate("CallScreen", {
-                    url:
-                      appt.videoLink ||
-                      getCalendlyLink(appt.appointmentType || "VIDEO_CALL"),
-                    title:
-                      appt.appointmentType === "AUDIO_CALL"
-                        ? "Start Audio Call"
-                        : "Start Video Call",
-                  })
-                }
-              >
-                <Text style={styles.callButtonAltText}>Start Call</Text>
-              </Pressable>
-            ) : null}
-            {appt.status === "BOOKED" ? (
-              <Pressable
-                style={styles.cancelButton}
-                onPress={() => handleCancel(appt._id)}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </Pressable>
-            ) : null}
-          </View>
-        ))
-      )}
-
-    </ScrollView>
+          ))
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#F8FAFC",
+  },
   container: {
     padding: 20,
     backgroundColor: "#F8FAFC",
@@ -639,7 +645,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 });
-
 
 
 

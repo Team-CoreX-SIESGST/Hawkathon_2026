@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useState } from "react";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { StyleSheet, Text, View, ScrollView, Pressable } from "react-native";
 import { AuthContext } from "../context/AuthContext";
 import { doctorNotifications, doctorReadNotification } from "../services/api";
@@ -18,33 +19,39 @@ export default function DoctorNotificationsScreen() {
   }, []);
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Notifications</Text>
-      {notifications.length === 0 ? (
-        <Text style={styles.helper}>No notifications.</Text>
-      ) : (
-        notifications.map((note) => (
-          <View key={note._id} style={styles.card}>
-            <Text style={styles.text}>{note.message}</Text>
-            {!note.read ? (
-              <Pressable
-                style={styles.button}
-                onPress={async () => {
-                  await doctorReadNotification(token, note._id);
-                  await load();
-                }}
-              >
-                <Text style={styles.buttonText}>Mark Read</Text>
-              </Pressable>
-            ) : null}
-          </View>
-        ))
-      )}
-    </ScrollView>
+    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.title}>Notifications</Text>
+        {notifications.length === 0 ? (
+          <Text style={styles.helper}>No notifications.</Text>
+        ) : (
+          notifications.map((note) => (
+            <View key={note._id} style={styles.card}>
+              <Text style={styles.text}>{note.message}</Text>
+              {!note.read ? (
+                <Pressable
+                  style={styles.button}
+                  onPress={async () => {
+                    await doctorReadNotification(token, note._id);
+                    await load();
+                  }}
+                >
+                  <Text style={styles.buttonText}>Mark Read</Text>
+                </Pressable>
+              ) : null}
+            </View>
+          ))
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#F8FAFC",
+  },
   container: {
     padding: 20,
     backgroundColor: "#F8FAFC",

@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useState } from "react";
+import { SafeAreaView } from "react-native-safe-area-context";
 import {
   StyleSheet,
   Text,
@@ -67,20 +68,21 @@ export default function DoctorAppointmentsScreen({ navigation }) {
   );
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>Doctor Appointments</Text>
-          <Text style={styles.subtitle}>
-            Urgency score is visible only to doctors.
-          </Text>
+    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.title}>Doctor Appointments</Text>
+            <Text style={styles.subtitle}>
+              Urgency score is visible only to doctors.
+            </Text>
+          </View>
+          <View style={styles.headerBadge}>
+            <Text style={styles.headerBadgeText}>
+              {activeAppointments.length} Active
+            </Text>
+          </View>
         </View>
-        <View style={styles.headerBadge}>
-          <Text style={styles.headerBadgeText}>
-            {activeAppointments.length} Active
-          </Text>
-        </View>
-      </View>
 
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
@@ -162,31 +164,36 @@ export default function DoctorAppointmentsScreen({ navigation }) {
         ))
       )}
 
-      <Text style={styles.sectionTitle}>Past Appointments</Text>
-      {completedAppointments.length === 0 ? (
-        <Text style={styles.helperText}>No past appointments yet.</Text>
-      ) : (
-        completedAppointments.map((appt) => (
-          <View key={appt._id} style={styles.cardSmall}>
-            <View>
-              <Text style={styles.cardTitle}>
-                {appt.patient.abha_profile.name || "Patient"}
-              </Text>
-              <Text style={styles.cardMeta}>
-                {appt.preferredDate} · {appt.preferredTime}
-              </Text>
+        <Text style={styles.sectionTitle}>Past Appointments</Text>
+        {completedAppointments.length === 0 ? (
+          <Text style={styles.helperText}>No past appointments yet.</Text>
+        ) : (
+          completedAppointments.map((appt) => (
+            <View key={appt._id} style={styles.cardSmall}>
+              <View>
+                <Text style={styles.cardTitle}>
+                  {appt.patient.abha_profile.name || "Patient"}
+                </Text>
+                <Text style={styles.cardMeta}>
+                  {appt.preferredDate} · {appt.preferredTime}
+                </Text>
+              </View>
+              <View style={styles.typeBadge}>
+                <Text style={styles.typeBadgeText}>Completed</Text>
+              </View>
             </View>
-            <View style={styles.typeBadge}>
-              <Text style={styles.typeBadgeText}>Completed</Text>
-            </View>
-          </View>
-        ))
-      )}
-    </ScrollView>
+          ))
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#F8FAFC",
+  },
   container: {
     padding: 20,
     backgroundColor: "#F8FAFC",

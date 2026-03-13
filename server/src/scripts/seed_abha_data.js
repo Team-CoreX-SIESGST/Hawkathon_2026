@@ -18,6 +18,49 @@ const dataPathArg = process.env.DATA_PATH || nonFlagArg;
 const defaultDataPath = path.resolve(__dirname, '..', 'data', 'abha_dummy_dataset.json');
 const dataPath = dataPathArg ? path.resolve(dataPathArg) : defaultDataPath;
 
+const TOWN_COORDS = {
+    Nabha: { latitude: 30.3758, longitude: 76.1529 },
+    'Nabha Town': { latitude: 30.3758, longitude: 76.1529 },
+    Chhajli: { latitude: 30.0367, longitude: 75.8242 },
+    Dhuri: { latitude: 30.3725, longitude: 75.8619 },
+    'Dhuri Kalan': { latitude: 30.3725, longitude: 75.8619 },
+    'Fatehgarh Churian': { latitude: 31.8643, longitude: 74.9567 },
+    Ghanaur: { latitude: 30.3313, longitude: 76.612 },
+    Rajpura: { latitude: 30.484, longitude: 76.594 },
+    Sirhind: { latitude: 30.616, longitude: 76.3811 }
+};
+
+const PLACE_TO_TOWN = {
+    'Barnala Khurd': 'Nabha',
+    Nabha: 'Nabha',
+    Patiala: 'Nabha',
+    Punjab: 'Nabha',
+    'Majra Khurd': 'Nabha',
+    Chhajli: 'Chhajli',
+    'Dhuri Kalan': 'Dhuri',
+    Sadhuana: 'Nabha',
+    'Fatehgarh Churian': 'Fatehgarh Churian',
+    'Nabha Town': 'Nabha',
+    'Bhamian Kalan': 'Nabha',
+    Kohar: 'Nabha',
+    'Tibba Sultanpur': 'Nabha',
+    Ghanaur: 'Ghanaur',
+    'Rajpura Road Village': 'Rajpura',
+    'Sirhind Road Dhakoli': 'Sirhind'
+};
+
+const resolveTownCoordinates = (address) => {
+    const candidates = [address?.village, address?.subDistrict, address?.district];
+    for (const candidate of candidates) {
+        if (!candidate) continue;
+        const town = PLACE_TO_TOWN[candidate] || candidate;
+        if (TOWN_COORDS[town]) {
+            return { town, coords: TOWN_COORDS[town] };
+        }
+    }
+    return { town: 'Nabha', coords: TOWN_COORDS.Nabha };
+};
+
 const loadData = () => {
     const raw = fs.readFileSync(dataPath, 'utf-8');
     return JSON.parse(raw);
@@ -42,7 +85,9 @@ const seed = async () => {
                 health_records: patient.health_records,
                 consultations: patient.consultations,
                 insurance: patient.insurance,
-                locationCoordinates: patient.locationCoordinates
+                locationCoordinates:
+                    patient.locationCoordinates ||
+                    resolveTownCoordinates(patient.address || {}).coords
             };
             Object.keys(updatePayload).forEach((key) => {
                 if (typeof updatePayload[key] === 'undefined') {
@@ -55,7 +100,7 @@ const seed = async () => {
                     update: {
                         $set: updatePayload
                     },
-                    upsert: false
+                    upsert: true
                 }
             };
         })

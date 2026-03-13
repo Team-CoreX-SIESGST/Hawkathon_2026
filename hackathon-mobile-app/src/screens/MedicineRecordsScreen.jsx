@@ -53,7 +53,7 @@ function AskAIModal({ medicine, onClose, onSearchGeneric }) {
     { code: "pt", name: "Português (Portuguese)" },
     { code: "ru", name: "Русский (Russian)" },
     { code: "ja", name: "日本語 (Japanese)" }
-  ];
+  ];r
 
   useEffect(() => {
     if (!medicine) return;

@@ -43,6 +43,7 @@ export default function DoctorProfilePage({ navigation }) {
       specialty: user.specialization || profile.specialty,
       qualification: user.qualification || profile.qualification,
       registrationId: user.registrationId || user.registration || profile.registrationId,
+      phoneNumber: user.phoneNumber || profile.phoneNumber,
       facility: user.hospitalName || user.facility || profile.facility,
       experienceYears: user.experienceYears || user.experience || profile.experienceYears,
       about: user.about || user.bio || profile.about,
@@ -64,6 +65,7 @@ export default function DoctorProfilePage({ navigation }) {
           specialty: data.specialization || prev.specialty,
           qualification: data.qualification || prev.qualification,
           registrationId: data.registrationId || data.registration || prev.registrationId,
+          phoneNumber: data.phoneNumber || prev.phoneNumber,
           facility: data.hospitalName || data.facility || prev.facility,
           experienceYears: data.experienceYears || data.experience || prev.experienceYears,
           about: data.about || data.bio || prev.about,
@@ -115,6 +117,11 @@ export default function DoctorProfilePage({ navigation }) {
           <Text style={styles.registration}>
             Registration: {mergedProfile.registrationId}
           </Text>
+          {mergedProfile.phoneNumber ? (
+            <Text style={styles.phoneLine}>
+              Phone: {mergedProfile.phoneNumber}
+            </Text>
+          ) : null}
 
           <View style={styles.badgeRow}>
             <View style={styles.badge}>
@@ -137,6 +144,28 @@ export default function DoctorProfilePage({ navigation }) {
             <Text style={styles.infoLabel}>Experience</Text>
             <Text style={styles.infoValue}>{mergedProfile.experienceYears}+ Years</Text>
           </View>
+        </View>
+
+        <Text style={styles.sectionTitle}>Quick Actions</Text>
+        <View style={styles.actionStack}>
+          <Pressable
+            style={styles.primaryButton}
+            onPress={() => navigation.navigate("DoctorAppointments")}
+          >
+            <Text style={styles.primaryButtonText}>Appointments</Text>
+          </Pressable>
+          <Pressable
+            style={styles.secondaryButton}
+            onPress={() => navigation.navigate("DoctorNotifications")}
+          >
+            <Text style={styles.secondaryButtonText}>Notifications</Text>
+          </Pressable>
+          <Pressable
+            style={styles.secondaryButton}
+            onPress={() => navigation.navigate("DoctorPastPatients")}
+          >
+            <Text style={styles.secondaryButtonText}>Past Patients</Text>
+          </Pressable>
         </View>
 
         <Text style={styles.sectionTitle}>About</Text>
@@ -182,29 +211,6 @@ export default function DoctorProfilePage({ navigation }) {
         </View>
       </ScrollView>
 
-      <View style={styles.footer}>
-        <View style={styles.footerActions}>
-          <Pressable
-            style={styles.primaryButton}
-            onPress={() => navigation.navigate("DoctorAppointments")}
-          >
-            <Text style={styles.primaryButtonText}>Appointments</Text>
-          </Pressable>
-          <Pressable
-            style={styles.secondaryButton}
-            onPress={() => navigation.navigate("DoctorPastPatients")}
-          >
-            <Text style={styles.secondaryButtonText}>Past Patients</Text>
-          </Pressable>
-          <Pressable
-            style={styles.secondaryButton}
-            onPress={() => navigation.navigate("DoctorNotifications")}
-          >
-            <Text style={styles.secondaryButtonText}>Notifications</Text>
-          </Pressable>
-        </View>
-      </View>
-
       {loading && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="small" color="#5DC1B9" />
@@ -222,7 +228,7 @@ const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 20,
     paddingTop: 12,
-    paddingBottom: 120,
+    paddingBottom: 32,
   },
   headerRow: {
     flexDirection: "row",
@@ -316,6 +322,12 @@ const styles = StyleSheet.create({
     color: "#64748B",
     textAlign: "center",
   },
+  phoneLine: {
+    marginTop: 4,
+    fontSize: 13,
+    color: "#64748B",
+    textAlign: "center",
+  },
   badgeRow: {
     marginTop: 16,
     flexDirection: "row",
@@ -369,6 +381,10 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700",
     color: "#0F172A",
+  },
+  actionStack: {
+    marginTop: 12,
+    gap: 12,
   },
   aboutText: {
     marginTop: 8,
@@ -444,15 +460,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#0F172A",
     fontWeight: "600",
-  },
-  footer: {
-    position: "absolute",
-    left: 20,
-    right: 20,
-    bottom: 16,
-  },
-  footerActions: {
-    gap: 10,
   },
   primaryButton: {
     backgroundColor: "#5DC1B9",

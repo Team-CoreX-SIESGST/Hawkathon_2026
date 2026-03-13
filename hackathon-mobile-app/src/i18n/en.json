@@ -57,5 +57,12 @@
     "role_login_subtitle": "Already have an account? Sign in to continue.",
     "role_register_title": "{{role}} Register",
     "role_register_subtitle": "Create a new account to get started."
+  },
+  "role_selection": {
+    "heading": "Choose your role",
+    "patient_desc": "Consult doctors remotely and manage your health records.",
+    "doctor_desc": "Provide tele-consultations and help patients digitally.",
+    "asha_desc": "Support patients locally and coordinate health services.",
+    "continue": "Continue"
   }
 }

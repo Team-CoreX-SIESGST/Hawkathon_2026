@@ -14,6 +14,7 @@ import {
   View,
   Image,
   ScrollView,
+  Pressable,
   TouchableOpacity,
   Alert,
   Modal,
@@ -25,7 +26,6 @@ import { Feather } from "@expo/vector-icons";
 
 const quickActions = [
   { title: "Talk to Doctor", icon: "TD" },
-  { title: "Symptom Checker", icon: "SC" },
   { title: "Health Records", icon: "HR" },
   { title: "Find Medicine", icon: "FM" },
   { title: "Call with Ai", icon: "AI" },
@@ -45,6 +45,8 @@ export default function PatientDashboardMock() {
   const [doctors, setDoctors] = useState([]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [ashaModalOpen, setAshaModalOpen] = useState(false);
+  const [doctorModalOpen, setDoctorModalOpen] = useState(false);
+  const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [ashaWorkers, setAshaWorkers] = useState([]);
   const [ashaLoading, setAshaLoading] = useState(false);
   const [ashaError, setAshaError] = useState("");
@@ -191,6 +193,16 @@ export default function PatientDashboardMock() {
     }
   };
 
+  const openDoctorModal = (doctor) => {
+    setSelectedDoctor(doctor);
+    setDoctorModalOpen(true);
+  };
+
+  const closeDoctorModal = () => {
+    setDoctorModalOpen(false);
+    setSelectedDoctor(null);
+  };
+
   const supportName =
     activeUser?.supportName || activeUser?.ashaWorker?.name || null;
   return (
@@ -256,6 +268,10 @@ export default function PatientDashboardMock() {
                   handleVapiCall();
                   return;
                 }
+                if (item.title === "Find Medicine") {
+                  navigation.navigate("MedicineRecords");
+                  return;
+                }
                 Alert.alert("Quick Action", `${item.title} tapped`);
               }}
             >
@@ -282,9 +298,7 @@ export default function PatientDashboardMock() {
               key={doctor._id}
               style={styles.doctorCard}
               activeOpacity={0.8}
-              onPress={() =>
-                Alert.alert("Doctor", `${doctor.name} card tapped`)
-              }
+              onPress={() => openDoctorModal(doctor)}
             >
               <View style={styles.doctorAvatarWrap}>
                 <Image
@@ -425,6 +439,111 @@ export default function PatientDashboardMock() {
           </View>
         </View>
       </Modal>
+
+      <Modal
+        visible={doctorModalOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={closeDoctorModal}
+      >
+        <Pressable style={styles.modalOverlay} onPress={closeDoctorModal}>
+          <Pressable
+            style={styles.doctorSheet}
+            onPress={(event) => event.stopPropagation()}
+          >
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Doctor Snapshot</Text>
+              <TouchableOpacity style={styles.modalClose} onPress={closeDoctorModal}>
+                <Feather name="x" size={18} color="#0F172A" />
+              </TouchableOpacity>
+            </View>
+            {selectedDoctor ? (
+              <>
+                <View style={styles.sheetHeader}>
+                  <View style={styles.sheetAvatarWrap}>
+                    <Image
+                      source={require("../../assets/male-doctor-icon.png")}
+                      style={styles.sheetAvatar}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.sheetName}>
+                      {selectedDoctor.name || "Doctor"}
+                    </Text>
+                    <Text style={styles.sheetMeta}>
+                      {selectedDoctor.specialization || "General Practice"}
+                    </Text>
+                    <Text style={styles.sheetMeta}>
+                      {selectedDoctor.hospitalName || "Nearby Hospital"}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.sheetStatsRow}>
+                  <View style={styles.sheetStatCard}>
+                    <Text style={styles.sheetStatLabel}>Distance</Text>
+                    <Text style={styles.sheetStatValue}>
+                      {selectedDoctor.distanceKm
+                        ? `${selectedDoctor.distanceKm} km`
+                        : "Nearby"}
+                    </Text>
+                  </View>
+                  <View style={styles.sheetStatCard}>
+                    <Text style={styles.sheetStatLabel}>Experience</Text>
+                    <Text style={styles.sheetStatValue}>
+                      {selectedDoctor.experienceYears
+                        ? `${selectedDoctor.experienceYears}+ yrs`
+                        : "—"}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.sheetRow}>
+                  <Text style={styles.sheetRowLabel}>Availability</Text>
+                  <Text style={styles.sheetRowValue}>
+                    {selectedDoctor.availability || "Check schedule"}
+                  </Text>
+                </View>
+                {selectedDoctor.phoneNumber ? (
+                  <View style={styles.sheetRow}>
+                    <Text style={styles.sheetRowLabel}>Phone</Text>
+                    <Text style={styles.sheetRowValue}>
+                      {selectedDoctor.phoneNumber}
+                    </Text>
+                  </View>
+                ) : null}
+
+                {Array.isArray(selectedDoctor.languages) &&
+                selectedDoctor.languages.length ? (
+                  <>
+                    <Text style={styles.sheetSectionTitle}>Languages</Text>
+                    <View style={styles.sheetPillRow}>
+                      {selectedDoctor.languages.map((lang) => (
+                        <View key={lang} style={styles.sheetPill}>
+                          <Text style={styles.sheetPillText}>{lang}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </>
+                ) : null}
+
+                <View style={styles.sheetActions}>
+                  <TouchableOpacity
+                    style={styles.sheetPrimaryButton}
+                    onPress={() => {
+                      closeDoctorModal();
+                      navigation.navigate("PatientConsult");
+                    }}
+                  >
+                    <Text style={styles.sheetPrimaryText}>Book Appointment</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            ) : null}
+          </Pressable>
+        </Pressable>
+      </Modal>
+
 
       <Modal visible={searching} transparent animationType="fade">
         <View style={styles.searchOverlay}>
@@ -845,6 +964,122 @@ const styles = StyleSheet.create({
   },
   modalList: {
     maxHeight: 340,
+  },
+  doctorSheet: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 18,
+    paddingBottom: 24,
+    minHeight: "45%",
+    maxHeight: "60%",
+  },
+  sheetHeader: {
+    flexDirection: "row",
+    gap: 14,
+    alignItems: "center",
+    marginTop: 4,
+  },
+  sheetAvatarWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "#E8F6F4",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sheetAvatar: {
+    width: 42,
+    height: 42,
+  },
+  sheetName: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  sheetMeta: {
+    marginTop: 2,
+    fontSize: 13,
+    color: "#64748B",
+  },
+  sheetStatsRow: {
+    marginTop: 16,
+    flexDirection: "row",
+    gap: 12,
+  },
+  sheetStatCard: {
+    flex: 1,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  sheetStatLabel: {
+    fontSize: 11,
+    color: "#94A3B8",
+    textTransform: "uppercase",
+    fontWeight: "600",
+  },
+  sheetStatValue: {
+    marginTop: 6,
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  sheetRow: {
+    marginTop: 14,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  sheetRowLabel: {
+    fontSize: 13,
+    color: "#64748B",
+    fontWeight: "600",
+  },
+  sheetRowValue: {
+    fontSize: 13,
+    color: "#0F172A",
+    fontWeight: "600",
+  },
+  sheetSectionTitle: {
+    marginTop: 16,
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  sheetPillRow: {
+    marginTop: 10,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  sheetPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: "#EEF7F6",
+  },
+  sheetPillText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#0F766E",
+  },
+  sheetActions: {
+    marginTop: 20,
+  },
+  sheetPrimaryButton: {
+    backgroundColor: "#5DC1B9",
+    borderRadius: 16,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  sheetPrimaryText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+    fontSize: 15,
   },
   workerCard: {
     flexDirection: "row",

@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useState } from "react";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { StyleSheet, Text, View, ScrollView } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { AuthContext } from "../context/AuthContext";
@@ -19,56 +20,66 @@ export default function DoctorPastPatientsScreen() {
   }, []);
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <View style={styles.headerRow}>
-        <Text style={styles.title}>Past Patients</Text>
-        <View style={styles.headerBadge}>
-          <Text style={styles.headerBadgeText}>
-            {appointments.length} Completed
-          </Text>
-        </View>
-      </View>
-
-      {appointments.length === 0 ? (
-        <Text style={styles.helper}>No past patients yet.</Text>
-      ) : (
-        appointments.map((appt) => (
-          <View key={appt._id} style={styles.card}>
-            <View style={styles.cardHeader}>
-              <View style={styles.avatar}>
-                <Feather name="user" size={18} color="#0F172A" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.name}>
-                  {appt.patient?.abha_profile?.name || "Patient"}
-                </Text>
-                <Text style={styles.meta}>
-                  {appt.preferredDate} · {appt.preferredTime}
-                </Text>
-              </View>
-              <View style={styles.typeBadge}>
-                <Text style={styles.typeBadgeText}>
-                  {appt.appointmentType?.replace("_", " ") || "OFFLINE"}
-                </Text>
-              </View>
-            </View>
-            {appt.conversationSummary ? (
-              <View style={styles.summaryCard}>
-                <Feather name="activity" size={14} color="#5DC1B9" />
-                <Text style={styles.summaryText}>{appt.conversationSummary}</Text>
-              </View>
-            ) : null}
-            {appt.conversationInsights ? (
-              <Text style={styles.meta}>Insights: {appt.conversationInsights}</Text>
-            ) : null}
+    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <View style={styles.headerRow}>
+          <Text style={styles.title}>Past Patients</Text>
+          <View style={styles.headerBadge}>
+            <Text style={styles.headerBadgeText}>
+              {appointments.length} Completed
+            </Text>
           </View>
-        ))
-      )}
-    </ScrollView>
+        </View>
+
+        {appointments.length === 0 ? (
+          <Text style={styles.helper}>No past patients yet.</Text>
+        ) : (
+          appointments.map((appt) => (
+            <View key={appt._id} style={styles.card}>
+              <View style={styles.cardHeader}>
+                <View style={styles.avatar}>
+                  <Feather name="user" size={18} color="#0F172A" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.name}>
+                    {appt.patient?.abha_profile?.name || "Patient"}
+                  </Text>
+                  <Text style={styles.meta}>
+                    {appt.preferredDate} · {appt.preferredTime}
+                  </Text>
+                </View>
+                <View style={styles.typeBadge}>
+                  <Text style={styles.typeBadgeText}>
+                    {appt.appointmentType?.replace("_", " ") || "OFFLINE"}
+                  </Text>
+                </View>
+              </View>
+              {appt.conversationSummary ? (
+                <View style={styles.summaryCard}>
+                  <Feather name="activity" size={14} color="#5DC1B9" />
+                  <Text style={styles.summaryText}>
+                    {appt.conversationSummary}
+                  </Text>
+                </View>
+              ) : null}
+              {appt.conversationInsights ? (
+                <Text style={styles.meta}>
+                  Insights: {appt.conversationInsights}
+                </Text>
+              ) : null}
+            </View>
+          ))
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#F8FAFC",
+  },
   container: {
     padding: 20,
     backgroundColor: "#F8FAFC",

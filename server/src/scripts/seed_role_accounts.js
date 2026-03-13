@@ -57,16 +57,137 @@ const defaultSlots = [
 ];
 
 const doctorProfiles = [
-    { name: 'Dr. Aditi Sharma', username: 'dr.aditi', hospitalName: 'Nabha CHC' },
-    { name: 'Dr. Rohan Mehta', username: 'dr.rohan', hospitalName: 'Nabha Civil Hospital' },
-    { name: 'Dr. Kavya Rao', username: 'dr.kavya', hospitalName: 'Ghanaur PHC' },
-    { name: 'Dr. Arjun Reddy', username: 'dr.arjun', hospitalName: 'Rajpura SDH' },
-    { name: 'Dr. Priya Iyer', username: 'dr.priya', hospitalName: 'Sirhind CHC' },
-    { name: 'Dr. Sourav Banerjee', username: 'dr.sourav', hospitalName: 'Dhuri CHC' },
-    { name: 'Dr. Neha Kulkarni', username: 'dr.neha', hospitalName: 'Chhajli PHC' },
-    { name: 'Dr. Vishal Patel', username: 'dr.vishal', hospitalName: 'Fatehgarh Churian CHC' },
-    { name: 'Dr. Ananya Singh', username: 'dr.ananya', hospitalName: 'Rajpura CHC' },
-    { name: 'Dr. Rahul Verma', username: 'dr.rahul', hospitalName: 'Sirhind SDH' }
+    {
+        name: 'Dr. Aditi Sharma',
+        username: 'dr.aditi',
+        hospitalName: 'Nabha CHC',
+        phoneNumber:"9321858873",
+        specialization: 'Family Medicine',
+        qualification: 'MBBS, DNB (Family Medicine)',
+        registrationId: 'PB-MCI-23001',
+        experienceYears: 9,
+        availability: '09:00 - 14:00',
+        languages: ['Punjabi', 'Hindi', 'English'],
+        about:
+            'Focuses on preventive care, hypertension, diabetes screening, and community health awareness.'
+    },
+    {
+        name: 'Dr. Rohan Mehta',
+        username: 'dr.rohan',
+        hospitalName: 'Nabha Civil Hospital',
+        specialization: 'General Medicine',
+        qualification: 'MBBS, MD (Internal Medicine)',
+        registrationId: 'PB-MCI-23002',
+        experienceYears: 12,
+        availability: '10:00 - 16:00',
+        languages: ['Hindi', 'English'],
+        about:
+            'Experienced in managing chronic conditions and tele-consultation follow-ups.'
+    },
+    {
+        name: 'Dr. Kavya Rao',
+        username: 'dr.kavya',
+        hospitalName: 'Ghanaur PHC',
+        specialization: 'Obstetrics & Gynecology',
+        qualification: 'MBBS, DGO',
+        registrationId: 'PB-MCI-23003',
+        experienceYears: 8,
+        availability: '08:30 - 13:30',
+        languages: ['Punjabi', 'Hindi'],
+        about:
+            'Supports maternal health, antenatal care, and women wellness programs.'
+    },
+    {
+        name: 'Dr. Arjun Reddy',
+        username: 'dr.arjun',
+        hospitalName: 'Rajpura SDH',
+        specialization: 'Orthopedics',
+        qualification: 'MBBS, MS (Ortho)',
+        registrationId: 'PB-MCI-23004',
+        experienceYears: 11,
+        availability: '11:00 - 17:00',
+        languages: ['Hindi', 'English', 'Telugu'],
+        about:
+            'Treats joint pains, sports injuries, and post-surgical rehabilitation.'
+    },
+    {
+        name: 'Dr. Priya Iyer',
+        username: 'dr.priya',
+        hospitalName: 'Sirhind CHC',
+        specialization: 'Pediatrics',
+        qualification: 'MBBS, DCH',
+        registrationId: 'PB-MCI-23005',
+        experienceYears: 7,
+        availability: '09:30 - 13:30',
+        languages: ['Hindi', 'English', 'Tamil'],
+        about:
+            'Specializes in child wellness, vaccination guidance, and growth monitoring.'
+    },
+    {
+        name: 'Dr. Sourav Banerjee',
+        username: 'dr.sourav',
+        hospitalName: 'Dhuri CHC',
+        specialization: 'Dermatology',
+        qualification: 'MBBS, MD (Dermatology)',
+        registrationId: 'PB-MCI-23006',
+        experienceYears: 10,
+        availability: '12:00 - 18:00',
+        languages: ['Hindi', 'English', 'Bengali'],
+        about:
+            'Manages skin allergies, infections, and long-term dermatological care.'
+    },
+    {
+        name: 'Dr. Neha Kulkarni',
+        username: 'dr.neha',
+        hospitalName: 'Chhajli PHC',
+        specialization: 'ENT',
+        qualification: 'MBBS, MS (ENT)',
+        registrationId: 'PB-MCI-23007',
+        experienceYears: 6,
+        availability: '09:00 - 13:00',
+        languages: ['Hindi', 'English', 'Marathi'],
+        about:
+            'Handles ENT infections, allergy care, and minor procedures for rural patients.'
+    },
+    {
+        name: 'Dr. Vishal Patel',
+        username: 'dr.vishal',
+        hospitalName: 'Fatehgarh Churian CHC',
+        specialization: 'Cardiology',
+        qualification: 'MBBS, MD (Cardiology)',
+        registrationId: 'PB-MCI-23008',
+        experienceYears: 14,
+        availability: '10:30 - 15:30',
+        languages: ['Hindi', 'English', 'Gujarati'],
+        about:
+            'Focuses on cardiac risk management, ECG review, and preventive heart care.'
+    },
+    {
+        name: 'Dr. Ananya Singh',
+        username: 'dr.ananya',
+        hospitalName: 'Rajpura CHC',
+        specialization: 'Psychiatry',
+        qualification: 'MBBS, MD (Psychiatry)',
+        registrationId: 'PB-MCI-23009',
+        experienceYears: 9,
+        availability: '11:30 - 16:30',
+        languages: ['Hindi', 'English'],
+        about:
+            'Supports mental health counseling, stress management, and tele-psychiatry.'
+    },
+    {
+        name: 'Dr. Rahul Verma',
+        username: 'dr.rahul',
+        hospitalName: 'Sirhind SDH',
+        specialization: 'Pulmonology',
+        qualification: 'MBBS, MD (Pulmonology)',
+        registrationId: 'PB-MCI-23010',
+        experienceYears: 13,
+        availability: '09:00 - 15:00',
+        languages: ['Hindi', 'English'],
+        about:
+            'Treats asthma, COPD, and respiratory infections with community outreach.'
+    }
 ];
 
 const doctorPhoneBase = 9876500000;
@@ -191,6 +312,13 @@ const seedAccounts = async () => {
                         name: doctor.name,
                         hospitalName: doctor.hospitalName,
                         phoneNumber: doctor.phoneNumber,
+                        specialization: doctor.specialization,
+                        qualification: doctor.qualification,
+                        registrationId: doctor.registrationId,
+                        experienceYears: doctor.experienceYears,
+                        about: doctor.about,
+                        languages: doctor.languages,
+                        availability: doctor.availability,
                         locationCoordinates: doctor.locationCoordinates,
                         availableSlots: doctor.availableSlots
                     },
