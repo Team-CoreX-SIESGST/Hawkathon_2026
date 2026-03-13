@@ -16,6 +16,7 @@ import {
   cancelAppointment,
   structureAppointment,
 } from "../services/api";
+import { getCalendlyLink } from "../services/callLinks";
 
 export default function PatientConsultScreen({ navigation }) {
   const { token, user } = useContext(AuthContext);
@@ -122,6 +123,15 @@ export default function PatientConsultScreen({ navigation }) {
     } catch (err) {
       setError(err.message || "Unable to cancel appointment");
     }
+  };
+
+  const isToday = (dateString) => {
+    if (!dateString) return false;
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, "0");
+    const dd = String(today.getDate()).padStart(2, "0");
+    return dateString === `${yyyy}-${mm}-${dd}`;
   };
 
   return (
@@ -325,16 +335,39 @@ export default function PatientConsultScreen({ navigation }) {
               <Pressable
                 style={styles.callButton}
                 onPress={() =>
-                  navigation.navigate("VideoCall", {
-                    roomId: appt._id,
-                    userRole: "patient",
-                    userName: user?.abha_profile?.name || user?.name,
-                    remoteName: appt.doctor?.name || "Doctor",
-                    callType: appt.appointmentType,
+                  navigation.navigate("CallScreen", {
+                    url:
+                      appt.videoLink ||
+                      getCalendlyLink(appt.appointmentType || "VIDEO_CALL"),
+                    title:
+                      appt.appointmentType === "AUDIO_CALL"
+                        ? "Join Audio Call"
+                        : "Join Video Call",
                   })
                 }
               >
                 <Text style={styles.callButtonText}>Join Call</Text>
+              </Pressable>
+            ) : null}
+            {appt.status === "BOOKED" &&
+            (appt.appointmentType === "VIDEO_CALL" ||
+              appt.appointmentType === "AUDIO_CALL") &&
+            isToday(appt.preferredDate) ? (
+              <Pressable
+                style={styles.callButtonAlt}
+                onPress={() =>
+                  navigation.navigate("CallScreen", {
+                    url:
+                      appt.videoLink ||
+                      getCalendlyLink(appt.appointmentType || "VIDEO_CALL"),
+                    title:
+                      appt.appointmentType === "AUDIO_CALL"
+                        ? "Start Audio Call"
+                        : "Start Video Call",
+                  })
+                }
+              >
+                <Text style={styles.callButtonAltText}>Start Call</Text>
               </Pressable>
             ) : null}
             {appt.status === "BOOKED" ? (
@@ -592,6 +625,17 @@ const styles = StyleSheet.create({
   },
   callButtonText: {
     color: "#FFFFFF",
+    fontWeight: "700",
+  },
+  callButtonAlt: {
+    marginTop: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: "#E8F6F4",
+    alignItems: "center",
+  },
+  callButtonAltText: {
+    color: "#0F172A",
     fontWeight: "700",
   },
 });

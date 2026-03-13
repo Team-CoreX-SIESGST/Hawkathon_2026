@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useState } from "react";
 import { StyleSheet, Text, View, ScrollView } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { AuthContext } from "../context/AuthContext";
-import { doctorAppointments } from "../services/api";
+import { doctorPastPatients } from "../services/api";
 
 export default function DoctorPastPatientsScreen() {
   const { token } = useContext(AuthContext);
@@ -10,11 +10,8 @@ export default function DoctorPastPatientsScreen() {
 
   const load = async () => {
     if (!token) return;
-    const data = await doctorAppointments(token);
-    const completed = (data.results || []).filter(
-      (appt) => appt.status === "COMPLETED"
-    );
-    setAppointments(completed);
+    const data = await doctorPastPatients(token);
+    setAppointments(data.results || []);
   };
 
   useEffect(() => {

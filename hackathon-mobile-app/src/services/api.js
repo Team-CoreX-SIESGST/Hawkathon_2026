@@ -272,6 +272,10 @@ export async function uploadAbhaCard({ uri, name, type }) {
 export const patientUpdate = (token, payload) =>
   request("/patient/update", "PUT", payload, token);
 export const patientMe = (token) => request("/patient/me", "GET", null, token);
+export const patientAssignAshaWorker = (token, ashaId) =>
+  request("/patient/asha/assign", "POST", ashaId ? { ashaId } : null, token);
+export const patientAshaList = (token) =>
+  request("/patient/asha/list", "GET", null, token);
 
 export const doctorRegister = (payload) =>
   request("/doctor/register", "POST", payload);
@@ -290,6 +294,8 @@ export const doctorNearby = (latitude, longitude, radiusKm = 10) =>
   );
 export const doctorAppointments = (token) =>
   request("/doctor/appointments", "GET", null, token);
+export const doctorPastPatients = (token) =>
+  request("/doctor/past-patients", "GET", null, token);
 export const doctorUpdateAppointmentStatus = (token, id, status) =>
   request(`/doctor/appointments/${id}/status`, "PATCH", { status }, token);
 export const doctorStartCall = (token, id, callType) =>
@@ -313,6 +319,8 @@ export const ashaLogin = (payload) =>
 export const ashaUpdate = (token, payload) =>
   request("/asha/update", "PUT", payload, token);
 export const ashaMe = (token) => request("/asha/me", "GET", null, token);
+export const ashaPatients = (token) =>
+  request("/asha/patients", "GET", null, token);
 
 export const createAppointment = (token, payload) =>
   request("/appointments", "POST", payload, token);

@@ -18,6 +18,7 @@ export default function HealthRecordsScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [reports, setReports] = useState([]);
   const [appointments, setAppointments] = useState([]);
+  const [healthProfile, setHealthProfile] = useState(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -29,6 +30,7 @@ export default function HealthRecordsScreen({ navigation }) {
         const data = await patientMe(token);
         setReports(data?.reports || []);
         setAppointments(data?.appointmentHistory || []);
+        setHealthProfile(data?.health_records || null);
       } catch (err) {
         setError(err.message || "Failed to load health records");
       } finally {
@@ -60,6 +62,54 @@ export default function HealthRecordsScreen({ navigation }) {
         </View>
 
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+        <Text style={styles.sectionTitle}>Health Profile</Text>
+        {healthProfile ? (
+          <View style={styles.card}>
+            <View style={styles.profileRow}>
+              <View style={styles.profileItem}>
+                <Text style={styles.profileLabel}>Blood Group</Text>
+                <Text style={styles.profileValue}>
+                  {healthProfile.bloodGroup || "N/A"}
+                </Text>
+              </View>
+              <View style={styles.profileItem}>
+                <Text style={styles.profileLabel}>BMI</Text>
+                <Text style={styles.profileValue}>
+                  {typeof healthProfile.bmi === "number"
+                    ? healthProfile.bmi
+                    : "N/A"}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.profileList}>
+              <Text style={styles.profileLabel}>Allergies</Text>
+              <Text style={styles.profileValue}>
+                {Array.isArray(healthProfile.allergies)
+                  ? healthProfile.allergies.join(", ")
+                  : healthProfile.allergies || "None"}
+              </Text>
+            </View>
+            <View style={styles.profileList}>
+              <Text style={styles.profileLabel}>Chronic Conditions</Text>
+              <Text style={styles.profileValue}>
+                {Array.isArray(healthProfile.chronicConditions)
+                  ? healthProfile.chronicConditions.join(", ")
+                  : healthProfile.chronicConditions || "None"}
+              </Text>
+            </View>
+            <View style={styles.profileList}>
+              <Text style={styles.profileLabel}>Disabilities</Text>
+              <Text style={styles.profileValue}>
+                {Array.isArray(healthProfile.disabilities)
+                  ? healthProfile.disabilities.join(", ")
+                  : healthProfile.disabilities || "None"}
+              </Text>
+            </View>
+          </View>
+        ) : (
+          <Text style={styles.helperText}>No health profile data yet.</Text>
+        )}
 
         <Text style={styles.sectionTitle}>Reports</Text>
         {loading ? (
@@ -197,6 +247,35 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
     borderColor: "#E6EEF0",
+  },
+  profileRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  profileItem: {
+    flex: 1,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  profileLabel: {
+    fontSize: 11,
+    color: "#94A3B8",
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+  },
+  profileValue: {
+    marginTop: 6,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  profileList: {
+    marginTop: 10,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
   },
   cardHeader: {
     flexDirection: "row",

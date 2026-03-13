@@ -150,6 +150,24 @@ export const getDoctorAppointments = async (req, res) => {
     }
 };
 
+// @desc    Doctor view past patients (completed appointments)
+// @route   GET /api/doctor/past-patients
+// @access  Private (Doctor)
+export const getDoctorPastPatients = async (req, res) => {
+    try {
+        const appointments = await Appointment.find({
+            doctor: req.user._id,
+            status: 'COMPLETED'
+        })
+            .populate('patient', 'abha_profile locationCoordinates')
+            .sort({ createdAt: -1 });
+
+        res.json({ count: appointments.length, results: appointments });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 // @desc    Doctor update appointment status
 // @route   PATCH /api/doctor/appointments/:id/status
 // @access  Private (Doctor)

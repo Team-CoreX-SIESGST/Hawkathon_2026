@@ -119,6 +119,9 @@ export default function PatientProfilePage() {
           supportName: data.supportName || prev.supportName,
           supportRole: data.supportRole || prev.supportRole,
           address: data.address || prev.address,
+          ashaWorker: data.ashaWorker || prev.ashaWorker,
+          ashaWorkerAssignedAt:
+            data.ashaWorkerAssignedAt || prev.ashaWorkerAssignedAt,
           recentConsultation:
             data.recentConsultation || prev.recentConsultation || fallbackProfile.recentConsultation,
         }));
@@ -265,8 +268,12 @@ export default function PatientProfilePage() {
             <Feather name="map-pin" size={18} color="#5DC1B9" />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.supportName}>{mergedProfile.supportName}</Text>
-            <Text style={styles.supportRole}>{mergedProfile.supportRole}</Text>
+            <Text style={styles.supportName}>
+              {mergedProfile.supportName || "Not connected"}
+            </Text>
+            <Text style={styles.supportRole}>
+              {mergedProfile.supportRole || "Connect to ASHA worker"}
+            </Text>
           </View>
           <View style={styles.supportCall}>
             <Feather name="phone" size={18} color="#22C55E" />

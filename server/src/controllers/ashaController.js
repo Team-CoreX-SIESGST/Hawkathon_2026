@@ -1,4 +1,5 @@
 import AshaWorkerAccount from '../models/AshaWorkerAccount.js';
+import Patient from '../models/Patient.js';
 import { signToken } from '../utils/jwt.js';
 
 const generateToken = (id, role) => {
@@ -116,4 +117,27 @@ export const getAshaMe = async (req, res) => {
         username: req.user.username,
         locationCoordinates: req.user.locationCoordinates
     });
+};
+
+// @desc    Get patients assigned to ASHA worker
+// @route   GET /api/asha/patients
+// @access  Private
+export const getAshaPatients = async (req, res) => {
+    try {
+        const patients = await Patient.find({ ashaWorkerId: req.user._id }).select(
+            'abha_profile locationCoordinates ashaWorkerAssignedAt'
+        );
+
+        const results = patients.map((patient) => ({
+            _id: patient._id,
+            name: patient?.abha_profile?.name || 'Patient',
+            healthIdNumber: patient?.abha_profile?.healthIdNumber || null,
+            locationCoordinates: patient.locationCoordinates,
+            assignedAt: patient.ashaWorkerAssignedAt || null
+        }));
+
+        res.json({ count: results.length, results });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
 };

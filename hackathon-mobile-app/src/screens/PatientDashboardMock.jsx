@@ -1,8 +1,13 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { AuthContext } from "../context/AuthContext";
-import { doctorNearby, patientMe } from "../services/api";
+import {
+  doctorNearby,
+  patientMe,
+  patientAshaList,
+  patientAssignAshaWorker,
+} from "../services/api";
 import {
   StyleSheet,
   Text,
@@ -11,7 +16,10 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
-  Linking,
+  Modal,
+  ActivityIndicator,
+  Animated,
+  Easing,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 
@@ -36,6 +44,14 @@ export default function PatientDashboardMock() {
   const [profile, setProfile] = useState(null);
   const [doctors, setDoctors] = useState([]);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [ashaModalOpen, setAshaModalOpen] = useState(false);
+  const [ashaWorkers, setAshaWorkers] = useState([]);
+  const [ashaLoading, setAshaLoading] = useState(false);
+  const [ashaError, setAshaError] = useState("");
+  const [assigning, setAssigning] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [selectedAsha, setSelectedAsha] = useState(null);
+  const pulse = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -69,6 +85,27 @@ export default function PatientDashboardMock() {
     loadDoctors();
   }, [activeUser]);
 
+  useEffect(() => {
+    let animation;
+    if (searching) {
+      pulse.setValue(0);
+      animation = Animated.loop(
+        Animated.timing(pulse, {
+          toValue: 1,
+          duration: 1400,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true,
+        })
+      );
+      animation.start();
+    }
+    return () => {
+      if (animation) {
+        animation.stop();
+      }
+    };
+  }, [searching, pulse]);
+
   const firstName =
     activeUser?.abha_profile?.firstName ||
     activeUser?.name ||
@@ -95,6 +132,67 @@ export default function PatientDashboardMock() {
     setMenuOpen(false);
     navigation.navigate("PatientProfile");
   };
+
+  const loadAshaWorkers = async () => {
+    if (!token) return;
+    setAshaLoading(true);
+    setAshaError("");
+    try {
+      const data = await patientAshaList(token);
+      setAshaWorkers(data?.results || []);
+    } catch (error) {
+      setAshaError(error.message || "Unable to load ASHA workers");
+    } finally {
+      setAshaLoading(false);
+    }
+  };
+
+  const openAshaModal = async () => {
+    setAshaModalOpen(true);
+    await loadAshaWorkers();
+  };
+
+  const calcDistanceKm = (origin, target) => {
+    if (!origin || !target) return null;
+    const toRad = (value) => (value * Math.PI) / 180;
+    const R = 6371;
+    const dLat = toRad(target.latitude - origin.latitude);
+    const dLon = toRad(target.longitude - origin.longitude);
+    const lat1 = toRad(origin.latitude);
+    const lat2 = toRad(target.latitude);
+    const h =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(h));
+  };
+
+  const handleConnectAsha = async (worker) => {
+    if (!token || !worker?._id) return;
+    setSelectedAsha(worker);
+    setSearching(true);
+    setAssigning(true);
+    setAshaError("");
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+      const assigned = await patientAssignAshaWorker(token, worker._id);
+      setProfile((prev) => ({
+        ...(prev || {}),
+        supportName: assigned?.ashaWorker?.name || prev?.supportName,
+        supportRole: "ASHA Worker",
+        ashaWorker: assigned?.ashaWorker || prev?.ashaWorker,
+        ashaWorkerAssignedAt: new Date().toISOString(),
+      }));
+      setAshaModalOpen(false);
+    } catch (error) {
+      setAshaError(error.message || "Unable to connect ASHA worker");
+    } finally {
+      setAssigning(false);
+      setSearching(false);
+    }
+  };
+
+  const supportName =
+    activeUser?.supportName || activeUser?.ashaWorker?.name || null;
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
@@ -204,6 +302,37 @@ export default function PatientDashboardMock() {
             </TouchableOpacity>
           ))}
         </View>
+
+        <Text style={styles.sectionTitle}>Local Support</Text>
+        <View style={styles.supportCard}>
+          <View style={styles.supportIcon}>
+            <Feather name="map-pin" size={18} color="#5DC1B9" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.supportName}>
+              {supportName || "Not connected"}
+            </Text>
+            <Text style={styles.supportRole}>
+              {supportName ? "ASHA Worker" : "Connect to an ASHA worker"}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={styles.supportAction}
+            activeOpacity={0.7}
+            onPress={openAshaModal}
+          >
+            <Feather name="user-plus" size={18} color="#0F172A" />
+          </TouchableOpacity>
+        </View>
+        <TouchableOpacity
+          style={styles.connectButton}
+          activeOpacity={0.8}
+          onPress={openAshaModal}
+        >
+          <Text style={styles.connectButtonText}>
+            {supportName ? "Change ASHA Worker" : "Connect to ASHA Worker"}
+          </Text>
+        </TouchableOpacity>
       </ScrollView>
 
       <View style={styles.bottomNav}>
@@ -231,6 +360,112 @@ export default function PatientDashboardMock() {
           );
         })}
       </View>
+
+      <Modal
+        visible={ashaModalOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setAshaModalOpen(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>ASHA Workers Nearby</Text>
+              <TouchableOpacity
+                style={styles.modalClose}
+                onPress={() => setAshaModalOpen(false)}
+              >
+                <Feather name="x" size={18} color="#0F172A" />
+              </TouchableOpacity>
+            </View>
+            {ashaLoading ? (
+              <View style={styles.modalLoading}>
+                <ActivityIndicator size="small" color="#5DC1B9" />
+                <Text style={styles.modalHint}>Fetching ASHA workers...</Text>
+              </View>
+            ) : ashaError ? (
+              <Text style={styles.modalError}>{ashaError}</Text>
+            ) : ashaWorkers.length === 0 ? (
+              <Text style={styles.modalHint}>No ASHA workers found.</Text>
+            ) : (
+              <ScrollView style={styles.modalList}>
+                {ashaWorkers.map((worker) => {
+                  const distance = calcDistanceKm(
+                    activeUser?.locationCoordinates,
+                    worker.locationCoordinates
+                  );
+                  return (
+                    <View key={worker._id} style={styles.workerCard}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.workerName}>{worker.name}</Text>
+                        <Text style={styles.workerMeta}>
+                          @{worker.username}
+                        </Text>
+                        <Text style={styles.workerMeta}>
+                          {distance ? `${distance.toFixed(1)} km away` : "Nearby"}
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        style={styles.workerButton}
+                        disabled={assigning}
+                        onPress={() => handleConnectAsha(worker)}
+                      >
+                        <Text style={styles.workerButtonText}>
+                          {assigning &&
+                          selectedAsha?._id === worker._id
+                            ? "Connecting..."
+                            : "Connect"}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })}
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={searching} transparent animationType="fade">
+        <View style={styles.searchOverlay}>
+          <View style={styles.searchCard}>
+            <Text style={styles.searchTitle}>Locating ASHA Worker</Text>
+            <Text style={styles.searchSubtitle}>
+              {selectedAsha?.name
+                ? `Connecting to ${selectedAsha.name}`
+                : "Searching nearby on the map"}
+            </Text>
+            <View style={styles.searchMap}>
+              <View style={styles.mapGridLine} />
+              <View style={[styles.mapGridLine, styles.mapGridLineAlt]} />
+              <View style={styles.mapGridLineVertical} />
+              <View
+                style={[styles.mapGridLineVertical, styles.mapGridLineAlt]}
+              />
+              <Animated.View
+                style={[
+                  styles.mapPulse,
+                  {
+                    opacity: pulse.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.6, 0],
+                    }),
+                    transform: [
+                      {
+                        scale: pulse.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0.6, 2.4],
+                        }),
+                      },
+                    ],
+                  },
+                ]}
+              />
+              <View style={styles.mapDot} />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -370,6 +605,54 @@ const styles = StyleSheet.create({
   doctorRow: {
     flexDirection: "row",
     gap: 14,
+  },
+  supportCard: {
+    marginTop: 12,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderWidth: 1,
+    borderColor: "#EEF1F4",
+  },
+  supportIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "#E8F6F4",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  supportName: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  supportRole: {
+    marginTop: 4,
+    fontSize: 13,
+    color: "#64748B",
+  },
+  supportAction: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#E8F6F4",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  connectButton: {
+    marginTop: 12,
+    paddingVertical: 12,
+    borderRadius: 16,
+    backgroundColor: "#0F172A",
+    alignItems: "center",
+  },
+  connectButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
   },
   doctorCard: {
     flex: 1,
@@ -514,5 +797,145 @@ const styles = StyleSheet.create({
   navLabelActive: {
     color: "#5DC1B9",
     fontWeight: "700",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(15, 23, 42, 0.45)",
+    justifyContent: "flex-end",
+  },
+  modalCard: {
+    maxHeight: "75%",
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 18,
+    paddingBottom: 24,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  modalClose: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#E8F6F4",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalLoading: {
+    alignItems: "center",
+    paddingVertical: 24,
+    gap: 10,
+  },
+  modalHint: {
+    color: "#64748B",
+  },
+  modalError: {
+    color: "#DC2626",
+    marginTop: 8,
+  },
+  modalList: {
+    maxHeight: 340,
+  },
+  workerCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#EEF1F4",
+    gap: 12,
+  },
+  workerName: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  workerMeta: {
+    marginTop: 4,
+    fontSize: 12,
+    color: "#64748B",
+  },
+  workerButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: "#5DC1B9",
+  },
+  workerButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+  },
+  searchOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(15, 23, 42, 0.6)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+  },
+  searchCard: {
+    width: "100%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 20,
+    alignItems: "center",
+  },
+  searchTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  searchSubtitle: {
+    marginTop: 6,
+    color: "#64748B",
+    textAlign: "center",
+  },
+  searchMap: {
+    marginTop: 16,
+    width: "100%",
+    height: 180,
+    borderRadius: 16,
+    backgroundColor: "#E8F6F4",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  mapGridLine: {
+    position: "absolute",
+    width: "100%",
+    height: 1,
+    backgroundColor: "rgba(15, 23, 42, 0.08)",
+    top: "35%",
+  },
+  mapGridLineAlt: {
+    top: "65%",
+  },
+  mapGridLineVertical: {
+    position: "absolute",
+    height: "100%",
+    width: 1,
+    backgroundColor: "rgba(15, 23, 42, 0.08)",
+    left: "35%",
+  },
+  mapDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: "#0F172A",
+  },
+  mapPulse: {
+    position: "absolute",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(15, 23, 42, 0.25)",
   },
 });

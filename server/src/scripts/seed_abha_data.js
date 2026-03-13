@@ -36,13 +36,24 @@ const seed = async () => {
         .map((patient) => {
             const healthIdNumber = patient?.abha_profile?.healthIdNumber;
             if (!healthIdNumber) return null;
+            const updatePayload = {
+                abha_profile: patient.abha_profile,
+                address: patient.address,
+                health_records: patient.health_records,
+                consultations: patient.consultations,
+                insurance: patient.insurance,
+                locationCoordinates: patient.locationCoordinates
+            };
+            Object.keys(updatePayload).forEach((key) => {
+                if (typeof updatePayload[key] === 'undefined') {
+                    delete updatePayload[key];
+                }
+            });
             return {
                 updateOne: {
                     filter: { 'abha_profile.healthIdNumber': healthIdNumber },
                     update: {
-                        $set: {
-                            'abha_profile.abha_id_card': patient?.abha_profile?.abha_id_card || ''
-                        }
+                        $set: updatePayload
                     },
                     upsert: false
                 }

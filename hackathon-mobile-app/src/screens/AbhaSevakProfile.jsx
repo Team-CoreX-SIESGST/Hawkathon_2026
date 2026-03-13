@@ -3,42 +3,36 @@ import {
   StyleSheet,
   Text,
   View,
-  Image,
   ScrollView,
-  Pressable,
   ActivityIndicator,
+  TouchableOpacity,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
-import { ashaMe } from "../services/api";
 import { AuthContext } from "../context/AuthContext";
-
-const GOOGLE_PLACES_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY;
+import { ashaMe, ashaPatients } from "../services/api";
 
 const fallbackProfile = {
-  name: "Meera Kumari",
-  username: "asha.meera",
-  registrations: 128,
-  assisted: 54,
+  name: "ASHA Worker",
+  username: "asha.worker",
   locationCoordinates: { latitude: 30.3719, longitude: 76.1528 },
 };
 
 export default function AbhaSevakProfile() {
-  const { token, user } = useContext(AuthContext);
+  const { token, user, signOut } = useContext(AuthContext);
   const [profile, setProfile] = useState(fallbackProfile);
-  const [cityLabel, setCityLabel] = useState("Nabha, Punjab");
+  const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [cityLoading, setCityLoading] = useState(false);
+  const [patientLoading, setPatientLoading] = useState(false);
 
   const mergedProfile = useMemo(() => {
-    if (!user) return profile;
     return {
+      ...fallbackProfile,
       ...profile,
-      name: user.name || profile.name,
-      username: user.username || profile.username,
-      registrations: user.registrations || profile.registrations,
-      assisted: user.assisted || profile.assisted,
-      locationCoordinates: user.locationCoordinates || profile.locationCoordinates,
+      name: user?.name || profile.name,
+      username: user?.username || profile.username,
+      locationCoordinates:
+        user?.locationCoordinates || profile.locationCoordinates,
     };
   }, [profile, user]);
 
@@ -54,8 +48,6 @@ export default function AbhaSevakProfile() {
           ...prev,
           name: data.name || prev.name,
           username: data.username || prev.username,
-          registrations: data.registrations || prev.registrations,
-          assisted: data.assisted || prev.assisted,
           locationCoordinates: data.locationCoordinates || prev.locationCoordinates,
         }));
       } catch (err) {
@@ -72,90 +64,100 @@ export default function AbhaSevakProfile() {
   }, [token]);
 
   useEffect(() => {
-    const coords = mergedProfile.locationCoordinates;
-    if (!coords?.latitude || !coords?.longitude || !GOOGLE_PLACES_API_KEY) {
-      return;
-    }
-
-    let isActive = true;
-    const fetchCity = async () => {
-      setCityLoading(true);
+    let isMounted = true;
+    const loadPatients = async () => {
+      if (!token) return;
+      setPatientLoading(true);
       try {
-        const latlng = `${coords.latitude},${coords.longitude}`;
-        const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latlng}&key=${GOOGLE_PLACES_API_KEY}`;
-        const response = await fetch(url);
-        const data = await response.json();
-        const result = data?.results?.[0];
-        const cityComponent = result?.address_components?.find((c) =>
-          c.types.includes("locality")
-        );
-        const stateComponent = result?.address_components?.find((c) =>
-          c.types.includes("administrative_area_level_1")
-        );
-        const city = cityComponent?.long_name || result?.formatted_address;
-        const state = stateComponent?.short_name || "";
-        if (isActive && city) {
-          setCityLabel(state ? `${city}, ${state}` : city);
-        }
+        const data = await ashaPatients(token);
+        if (!isMounted) return;
+        setPatients(data?.results || []);
       } catch (err) {
-        // ignore errors
+        if (isMounted) setPatients([]);
       } finally {
-        if (isActive) setCityLoading(false);
+        if (isMounted) setPatientLoading(false);
       }
     };
 
-    fetchCity();
+    loadPatients();
     return () => {
-      isActive = false;
+      isMounted = false;
     };
-  }, [mergedProfile.locationCoordinates]);
+  }, [token]);
+
+
+  const formatAssigned = (value) => {
+    if (!value) return "Not assigned";
+    try {
+      return new Date(value).toLocaleDateString();
+    } catch {
+      return String(value);
+    }
+  };
+
+  const handleLogout = () => {
+    signOut();
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.heroCard}>
-          <View style={styles.avatarWrap}>
-            <Image
-              source={require("../../assets/abhaa-icon.png")}
-              style={styles.avatar}
-              resizeMode="contain"
-            />
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.title}>ASHA Home</Text>
+            <Text style={styles.subtitle}>Assigned patients overview</Text>
           </View>
-          <Text style={styles.name}>{mergedProfile.name}</Text>
-          <Text style={styles.username}>@{mergedProfile.username}</Text>
-          <View style={styles.locationPill}>
-            <Feather name="map-pin" size={14} color="#E8F6F4" />
-            <Text style={styles.locationText}>
-              {cityLoading ? "Fetching location..." : cityLabel}
-            </Text>
+          <View style={styles.countBadge}>
+            <Text style={styles.countText}>{patients.length} Assigned</Text>
           </View>
         </View>
 
-        <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Registrations</Text>
-            <Text style={styles.statValue}>{mergedProfile.registrations}</Text>
+        <View style={styles.profileCard}>
+          <View style={styles.avatar}>
+            <Feather name="heart" size={22} color="#5DC1B9" />
           </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Assisted</Text>
-            <Text style={styles.statValue}>{mergedProfile.assisted}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.name}>{mergedProfile.name}</Text>
+            <Text style={styles.username}>@{mergedProfile.username}</Text>
           </View>
+          {loading ? (
+            <ActivityIndicator size="small" color="#5DC1B9" />
+          ) : null}
         </View>
 
-        <Pressable style={styles.primaryButton}>
-          <Text style={styles.primaryButtonText}>Edit Profile Information</Text>
-        </Pressable>
+        <Text style={styles.sectionTitle}>Assigned Patients</Text>
+        {patientLoading ? (
+          <View style={styles.loadingRow}>
+            <ActivityIndicator size="small" color="#5DC1B9" />
+            <Text style={styles.loadingText}>Loading assigned patients...</Text>
+          </View>
+        ) : patients.length === 0 ? (
+          <Text style={styles.emptyText}>No patients assigned yet.</Text>
+        ) : (
+          patients.map((patient) => (
+            <View key={patient._id} style={styles.patientCard}>
+              <View style={styles.patientIcon}>
+                <Feather name="user" size={16} color="#0F172A" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.patientName}>{patient.name}</Text>
+                <Text style={styles.patientMeta}>
+                  {patient.healthIdNumber || "ABHA ID not available"}
+                </Text>
+              </View>
+              <View style={styles.assignedBadge}>
+                <Text style={styles.assignedText}>
+                  {formatAssigned(patient.assignedAt)}
+                </Text>
+              </View>
+            </View>
+          ))
+        )}
 
-        <Pressable style={styles.logoutButton}>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Text style={styles.logoutText}>Logout</Text>
-        </Pressable>
+        </TouchableOpacity>
       </ScrollView>
-
-      {loading && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="small" color="#5DC1B9" />
-        </View>
-      )}
     </SafeAreaView>
   );
 }
@@ -166,127 +168,132 @@ const styles = StyleSheet.create({
     backgroundColor: "#F7FAFB",
   },
   container: {
+    padding: 20,
     paddingBottom: 40,
   },
-  heroCard: {
-    backgroundColor: "#5DC1B9",
-    paddingTop: 44,
-    paddingBottom: 36,
-    paddingHorizontal: 24,
-    borderBottomLeftRadius: 38,
-    borderBottomRightRadius: 38,
-    alignItems: "center",
-  },
-  avatarWrap: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: "#FFFFFF",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 14,
-  },
-  avatar: {
-    width: 84,
-    height: 84,
-  },
-  name: {
-    fontSize: 26,
-    fontWeight: "700",
-    color: "#FFFFFF",
-  },
-  username: {
-    marginTop: 4,
-    fontSize: 14,
-    color: "#E8F6F4",
-  },
-  locationPill: {
-    marginTop: 14,
+  header: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "space-between",
+    marginBottom: 16,
   },
-  locationText: {
-    color: "#FFFFFF",
-    fontWeight: "600",
-  },
-  statsRow: {
-    marginTop: -28,
-    paddingHorizontal: 24,
-    flexDirection: "row",
-    gap: 14,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 18,
-    paddingVertical: 18,
-    paddingHorizontal: 16,
-    alignItems: "center",
-    shadowColor: "#0F172A",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 3,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: "#94A3B8",
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-  },
-  statValue: {
-    marginTop: 8,
-    fontSize: 18,
+  title: {
+    fontSize: 24,
     fontWeight: "700",
     color: "#0F172A",
   },
-  primaryButton: {
-    marginTop: 28,
-    marginHorizontal: 24,
-    backgroundColor: "#5DC1B9",
-    paddingVertical: 16,
-    borderRadius: 18,
-    alignItems: "center",
-    shadowColor: "#0F172A",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    elevation: 3,
+  subtitle: {
+    marginTop: 4,
+    color: "#64748B",
   },
-  primaryButtonText: {
-    color: "#FFFFFF",
+  countBadge: {
+    backgroundColor: "#E8F6F4",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  countText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  profileCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderWidth: 1,
+    borderColor: "#E6EEF0",
+  },
+  avatar: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: "#E8F6F4",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  name: {
     fontSize: 16,
     fontWeight: "700",
+    color: "#0F172A",
+  },
+  username: {
+    marginTop: 4,
+    color: "#64748B",
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#0F172A",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+  },
+  patientCard: {
+    marginTop: 12,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderWidth: 1,
+    borderColor: "#E6EEF0",
+  },
+  patientIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: "#F1F5F9",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  patientName: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  patientMeta: {
+    marginTop: 4,
+    fontSize: 12,
+    color: "#64748B",
+  },
+  assignedBadge: {
+    backgroundColor: "#E8F6F4",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  assignedText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  loadingRow: {
+    marginTop: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  loadingText: {
+    color: "#64748B",
+  },
+  emptyText: {
+    marginTop: 12,
+    color: "#64748B",
   },
   logoutButton: {
-    marginTop: 16,
-    marginHorizontal: 24,
+    marginTop: 24,
     backgroundColor: "#FEECEC",
-    paddingVertical: 16,
-    borderRadius: 18,
+    paddingVertical: 14,
+    borderRadius: 16,
     alignItems: "center",
   },
   logoutText: {
     color: "#EF4444",
     fontSize: 16,
     fontWeight: "700",
-  },
-  loadingOverlay: {
-    position: "absolute",
-    top: 16,
-    right: 16,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 8,
-    shadowColor: "#0F172A",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 2,
   },
 });

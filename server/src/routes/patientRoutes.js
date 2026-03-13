@@ -4,7 +4,9 @@ import {
     loginPatient,
     updatePatient,
     getPatientMe,
-    getPatientsNearby
+    getPatientsNearby,
+    assignAshaWorker,
+    listAshaWorkers
 } from '../controllers/patientController.js';
 import { protectPatient } from '../middleware/roleAuth.js';
 import upload from '../middleware/upload.js';
@@ -21,5 +23,7 @@ router.post('/abha/ocr', upload.single('abhaCard'), ocrAbhaCard);
 router.put('/update', protectPatient, updatePatient);
 router.get('/me', protectPatient, getPatientMe);
 router.get('/nearby', protectPatient, getPatientsNearby);
+router.get('/asha/list', protectPatient, listAshaWorkers);
+router.post('/asha/assign', protectPatient, assignAshaWorker);
 
 export default router;

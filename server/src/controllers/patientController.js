@@ -1,4 +1,5 @@
 import Patient from '../models/Patient.js';
+import AshaWorkerAccount from '../models/AshaWorkerAccount.js';
 import Appointment from '../models/Appointment.js';
 import { signToken } from '../utils/jwt.js';
 
@@ -26,6 +27,18 @@ const haversineKm = (a, b) => {
         Math.sin(dLat / 2) ** 2 +
         Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
     return 2 * R * Math.asin(Math.sqrt(h));
+};
+
+const pickBestAsha = (candidates) => {
+    if (!candidates.length) return null;
+    return candidates.reduce((best, current) => {
+        if (!best) return current;
+        if (current.load < best.load) return current;
+        if (current.load === best.load && current.distanceKm < best.distanceKm) {
+            return current;
+        }
+        return best;
+    }, null);
 };
 
 // @desc    Register patient
@@ -219,6 +232,15 @@ export const getPatientMe = async (req, res) => {
                 : asha.name
                 ? 'ASHA Worker'
                 : null,
+            ashaWorker: asha?.name
+                ? {
+                      name: asha.name,
+                      contact: asha.contact || null,
+                      village: asha.village || null
+                  }
+                : null,
+            ashaWorkerId: patient.ashaWorkerId || null,
+            ashaWorkerAssignedAt: patient.ashaWorkerAssignedAt || null,
             // Human readable address line
             address: fullAddressParts.length ? fullAddressParts.join(', ') : null,
             // Recent consultation summary used by the profile screen
@@ -284,6 +306,115 @@ export const getPatientsNearby = async (req, res) => {
             }));
 
         res.json({ count: nearby.length, results: nearby });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    List ASHA workers (for patient connect flow)
+// @route   GET /api/patient/asha/list
+// @access  Private
+export const listAshaWorkers = async (req, res) => {
+    try {
+        const ashaWorkers = await AshaWorkerAccount.find({
+            'locationCoordinates.latitude': { $ne: null },
+            'locationCoordinates.longitude': { $ne: null }
+        })
+            .select('name username locationCoordinates')
+            .limit(500);
+
+        const loadAgg = await Patient.aggregate([
+            { $match: { ashaWorkerId: { $ne: null } } },
+            { $group: { _id: '$ashaWorkerId', count: { $sum: 1 } } }
+        ]);
+        const loadMap = new Map(loadAgg.map((row) => [String(row._id), row.count]));
+
+        const results = ashaWorkers.map((asha) => ({
+            _id: asha._id,
+            name: asha.name,
+            username: asha.username,
+            locationCoordinates: asha.locationCoordinates,
+            assignedCount: loadMap.get(String(asha._id)) || 0
+        }));
+
+        res.json({ count: results.length, results });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Assign nearest ASHA worker based on current allotment
+// @route   POST /api/patient/asha/assign
+// @access  Private
+export const assignAshaWorker = async (req, res) => {
+    try {
+        const patient = await Patient.findById(req.user._id);
+        if (!patient) {
+            return res.status(404).json({ message: 'Patient not found' });
+        }
+
+        const coords = patient.locationCoordinates;
+        if (!coords?.latitude || !coords?.longitude) {
+            return res.status(400).json({ message: 'Patient location is required' });
+        }
+
+        const ashaId = req.body?.ashaId;
+        let chosen = null;
+
+        if (ashaId) {
+            const asha = await AshaWorkerAccount.findById(ashaId);
+            if (!asha) {
+                return res.status(404).json({ message: 'ASHA worker not found' });
+            }
+            const distanceKm = haversineKm(coords, asha.locationCoordinates);
+            const load = await Patient.countDocuments({ ashaWorkerId: asha._id });
+            chosen = { asha, distanceKm, load };
+        } else {
+            const ashaWorkers = await AshaWorkerAccount.find({
+                'locationCoordinates.latitude': { $ne: null },
+                'locationCoordinates.longitude': { $ne: null }
+            }).limit(500);
+
+            if (!ashaWorkers.length) {
+                return res.status(404).json({ message: 'No ASHA workers available' });
+            }
+
+            const candidates = await Promise.all(
+                ashaWorkers.map(async (asha) => {
+                    const distanceKm = haversineKm(coords, asha.locationCoordinates);
+                    const load = await Patient.countDocuments({ ashaWorkerId: asha._id });
+                    return { asha, distanceKm, load };
+                })
+            );
+
+            const nearby = candidates.filter((c) => c.distanceKm <= 10);
+            const pool = nearby.length ? nearby : candidates;
+
+            chosen = pickBestAsha(pool);
+            if (!chosen) {
+                return res.status(404).json({ message: 'No ASHA worker found' });
+            }
+        }
+
+        patient.ashaWorkerId = chosen.asha._id;
+        patient.ashaWorkerAssignedAt = new Date();
+        patient.ashaWorker = {
+            name: chosen.asha.name,
+            contact: chosen.asha.username,
+            village: ''
+        };
+        await patient.save();
+
+        res.json({
+            ashaWorkerId: chosen.asha._id,
+            ashaWorker: {
+                name: chosen.asha.name,
+                contact: chosen.asha.username,
+                village: ''
+            },
+            distanceKm: Number(chosen.distanceKm.toFixed(2)),
+            load: chosen.load
+        });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

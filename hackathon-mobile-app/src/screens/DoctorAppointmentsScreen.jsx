@@ -4,7 +4,6 @@ import {
   Text,
   View,
   ScrollView,
-  TextInput,
   Pressable,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
@@ -13,15 +12,13 @@ import {
   doctorAppointments,
   doctorUpdateAppointmentStatus,
   doctorStartCall,
-  doctorAddSummary,
 } from "../services/api";
+import { getCalendlyLink } from "../services/callLinks";
 
 export default function DoctorAppointmentsScreen({ navigation }) {
   const { token } = useContext(AuthContext);
   const [appointments, setAppointments] = useState([]);
   const [error, setError] = useState("");
-  const [transcripts, setTranscripts] = useState({});
-  const [notes, setNotes] = useState({});
 
   const load = async () => {
     try {
@@ -49,29 +46,16 @@ export default function DoctorAppointmentsScreen({ navigation }) {
 
   const startCall = async (appointment, callType) => {
     try {
-      await doctorStartCall(token, appointment._id, callType);
-      navigation.navigate("VideoCall", {
-        roomId: appointment._id,
-        userRole: "doctor",
-        userName: "Doctor",
-        remoteName: appointment?.patient?.abha_profile?.name || "Patient",
-        callType,
+      const result = await doctorStartCall(token, appointment._id, callType);
+      const url =
+        result?.videoLink || getCalendlyLink(callType || appointment?.appointmentType);
+      navigation.navigate("CallScreen", {
+        url,
+        title: callType === "AUDIO_CALL" ? "Start Audio Call" : "Start Video Call",
       });
       await load();
     } catch (err) {
       setError(err.message || "Unable to start call");
-    }
-  };
-
-  const saveSummary = async (appointment) => {
-    try {
-      await doctorAddSummary(token, appointment._id, {
-        transcript: transcripts[appointment._id] || "",
-        notes: notes[appointment._id] || "",
-      });
-      await updateStatus(appointment._id, "COMPLETED");
-    } catch (err) {
-      setError(err.message || "Unable to save summary");
     }
   };
 
@@ -174,31 +158,6 @@ export default function DoctorAppointmentsScreen({ navigation }) {
               </View>
             ) : null}
 
-            <TextInput
-              style={styles.input}
-              placeholder="Conversation transcript"
-              value={transcripts[appt._id] || ""}
-              onChangeText={(val) =>
-                setTranscripts((prev) => ({ ...prev, [appt._id]: val }))
-              }
-              multiline
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Doctor notes"
-              value={notes[appt._id] || ""}
-              onChangeText={(val) =>
-                setNotes((prev) => ({ ...prev, [appt._id]: val }))
-              }
-              multiline
-            />
-
-            <Pressable
-              style={styles.summaryButton}
-              onPress={() => saveSummary(appt)}
-            >
-              <Text style={styles.summaryButtonText}>Generate Summary</Text>
-            </Pressable>
           </View>
         ))
       )}
@@ -408,26 +367,6 @@ const styles = StyleSheet.create({
   },
   callButtonAltText: {
     color: "#0F172A",
-    fontWeight: "700",
-  },
-  input: {
-    marginTop: 10,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    borderRadius: 12,
-    padding: 10,
-    minHeight: 60,
-    backgroundColor: "#F9FAFB",
-  },
-  summaryButton: {
-    marginTop: 10,
-    paddingVertical: 10,
-    borderRadius: 12,
-    backgroundColor: "#5DC1B9",
-    alignItems: "center",
-  },
-  summaryButtonText: {
-    color: "#FFFFFF",
     fontWeight: "700",
   },
 });

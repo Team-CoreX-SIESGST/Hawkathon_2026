@@ -9,6 +9,7 @@ import {
 import { sendDoctorOtp, verifyDoctorOtp } from '../controllers/otpController.js';
 import {
     getDoctorAppointments,
+    getDoctorPastPatients,
     updateDoctorAppointmentStatus,
     startDoctorCall,
     addAppointmentSummary
@@ -26,6 +27,7 @@ router.put('/update', protectDoctor, updateDoctor);
 router.get('/me', protectDoctor, getDoctorMe);
 router.get('/nearby', getDoctorsNearby);
 router.get('/appointments', protectDoctor, getDoctorAppointments);
+router.get('/past-patients', protectDoctor, getDoctorPastPatients);
 router.patch('/appointments/:id/status', protectDoctor, updateDoctorAppointmentStatus);
 router.post('/appointments/:id/start-call', protectDoctor, startDoctorCall);
 router.post('/appointments/:id/summary', protectDoctor, addAppointmentSummary);

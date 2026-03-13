@@ -131,6 +131,8 @@ const patientSchema = new mongoose.Schema(
         consultations: [consultationSchema],
         insurance: { type: insuranceSchema },
         ashaWorker: { type: ashaWorkerSchema },
+        ashaWorkerId: { type: mongoose.Schema.Types.ObjectId, ref: 'AshaWorkerAccount' },
+        ashaWorkerAssignedAt: { type: Date },
         locationCoordinates: {
             latitude: { type: Number },
             longitude: { type: Number }
