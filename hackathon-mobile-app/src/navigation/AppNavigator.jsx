@@ -13,6 +13,7 @@ import PatientDashboardMock from "../screens/PatientDashboardMock";
 import ConsultantDashboardMock from "../screens/ConsultantDashboardMock";
 import DoctorProfilePage from "../screens/DoctorProfilePage";
 import PatientProfilePage from "../screens/PatientProfilePage";
+import AbhaSevakProfile from "../screens/AbhaSevakProfile";
 import PatientConsultScreen from "../screens/PatientConsultScreen";
 import MedicineAvailabilityScreen from "../screens/MedicineAvailabilityScreen";
 import MedicineRecordsScreen from "../screens/MedicineRecordsScreen";
@@ -20,6 +21,7 @@ import DoctorAppointmentsScreen from "../screens/DoctorAppointmentsScreen";
 import CallScreen from "../screens/CallScreen";
 import DoctorNotificationsScreen from "../screens/DoctorNotificationsScreen";
 import DoctorPastPatientsScreen from "../screens/DoctorPastPatientsScreen";
+import VideoCallScreen from "../screens/VideoCallScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -76,6 +78,11 @@ export default function AppNavigator() {
           options={{ headerShown: false }}
         />
         <Stack.Screen
+          name="AbhaSevakProfile"
+          component={AbhaSevakProfile}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
           name="PatientConsult"
           component={PatientConsultScreen}
           options={{ headerShown: false }}
@@ -108,6 +115,11 @@ export default function AppNavigator() {
         <Stack.Screen
           name="DoctorPastPatients"
           component={DoctorPastPatientsScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="VideoCall"
+          component={VideoCallScreen}
           options={{ headerShown: false }}
         />
       </Stack.Navigator>

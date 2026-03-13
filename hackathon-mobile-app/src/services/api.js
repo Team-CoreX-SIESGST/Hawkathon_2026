@@ -322,12 +322,6 @@ export const cancelAppointment = (token, id) =>
   request(`/appointments/${id}/cancel`, "PATCH", null, token);
 export const structureAppointment = (token, payload) =>
   request("/appointments/ai/structure", "POST", payload, token);
-export const patientNotifications = (token) =>
-  request("/patient/notifications", "GET", null, token);
-export const patientReadNotification = (token, id) =>
-  request(`/patient/notifications/${id}/read`, "PATCH", null, token);
-
-
 export async function getHealth() {
   const response = await fetch(`${API_BASE_URL}/`, {
     method: "GET",

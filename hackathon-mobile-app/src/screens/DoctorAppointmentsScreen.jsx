@@ -14,6 +14,7 @@ import {
   doctorStartCall,
   doctorAddSummary,
 } from "../services/api";
+import { getCalendlyLink } from "../services/callLinks";
 
 export default function DoctorAppointmentsScreen({ navigation }) {
   const { token } = useContext(AuthContext);
@@ -48,10 +49,12 @@ export default function DoctorAppointmentsScreen({ navigation }) {
 
   const startCall = async (appointment, callType) => {
     try {
-      const res = await doctorStartCall(token, appointment._id, callType);
+      const result = await doctorStartCall(token, appointment._id, callType);
+      const url =
+        result?.videoLink || getCalendlyLink(callType || appointment?.appointmentType);
       navigation.navigate("CallScreen", {
-        url: res.videoLink,
-        title: callType === "AUDIO_CALL" ? "Audio Call" : "Video Call",
+        url,
+        title: callType === "AUDIO_CALL" ? "Schedule Audio Call" : "Schedule Video Call",
       });
       await load();
     } catch (err) {
@@ -137,13 +140,13 @@ export default function DoctorAppointmentsScreen({ navigation }) {
                 style={styles.callButton}
                 onPress={() => startCall(appt, "VIDEO_CALL")}
               >
-                <Text style={styles.callButtonText}>Start Video Call</Text>
+                <Text style={styles.callButtonText}>Schedule Video Call</Text>
               </Pressable>
               <Pressable
                 style={styles.callButtonAlt}
                 onPress={() => startCall(appt, "AUDIO_CALL")}
               >
-                <Text style={styles.callButtonAltText}>Start Audio Call</Text>
+                <Text style={styles.callButtonAltText}>Schedule Audio Call</Text>
               </Pressable>
             </View>
           ) : null}

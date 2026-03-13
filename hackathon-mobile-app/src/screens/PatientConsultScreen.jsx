@@ -15,9 +15,8 @@ import {
   getMyAppointments,
   cancelAppointment,
   structureAppointment,
-  patientNotifications,
-  patientReadNotification,
 } from "../services/api";
+import { getCalendlyLink } from "../services/callLinks";
 
 export default function PatientConsultScreen({ navigation }) {
   const { token, user } = useContext(AuthContext);
@@ -33,7 +32,6 @@ export default function PatientConsultScreen({ navigation }) {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [notifications, setNotifications] = useState([]);
   const [slotsOpen, setSlotsOpen] = useState(false);
 
   const coords = useMemo(() => user?.locationCoordinates, [user]);
@@ -58,20 +56,9 @@ export default function PatientConsultScreen({ navigation }) {
     }
   };
 
-  const loadNotifications = async () => {
-    if (!token) return;
-    try {
-      const data = await patientNotifications(token);
-      setNotifications(data.results || []);
-    } catch (err) {
-      setNotifications([]);
-    }
-  };
-
   useEffect(() => {
     loadDoctors();
     loadAppointments();
-    loadNotifications();
   }, []);
 
   const handleBook = async () => {
@@ -332,6 +319,29 @@ export default function PatientConsultScreen({ navigation }) {
             <Text style={styles.appointmentMeta}>
               Status: {appt.status}
             </Text>
+            {appt.appointmentType === "VIDEO_CALL" ||
+            appt.appointmentType === "AUDIO_CALL" ? (
+              <Pressable
+                style={styles.callButton}
+                onPress={() => {
+                  const url =
+                    appt.videoLink || getCalendlyLink(appt.appointmentType);
+                  navigation.navigate("CallScreen", {
+                    url,
+                    title:
+                      appt.appointmentType === "AUDIO_CALL"
+                        ? "Schedule Audio Call"
+                        : "Schedule Video Call",
+                  });
+                }}
+              >
+                <Text style={styles.callButtonText}>
+                  {appt.appointmentType === "AUDIO_CALL"
+                    ? "Open Audio Call"
+                    : "Open Video Call"}
+                </Text>
+              </Pressable>
+            ) : null}
             {appt.status === "BOOKED" ? (
               <Pressable
                 style={styles.cancelButton}
@@ -344,30 +354,6 @@ export default function PatientConsultScreen({ navigation }) {
         ))
       )}
 
-      <Text style={styles.sectionTitle}>Notifications</Text>
-      {notifications.length === 0 ? (
-        <Text style={styles.helperText}>No notifications.</Text>
-      ) : (
-        notifications.map((note) => (
-          <View key={note._id} style={styles.notificationCard}>
-            <Text style={styles.notificationText}>{note.message}</Text>
-            {note?.data?.videoLink ? (
-              <Pressable
-                style={styles.callButton}
-                onPress={async () => {
-                  await patientReadNotification(token, note._id);
-                  navigation.navigate("CallScreen", {
-                    url: note.data.videoLink,
-                    title: "Incoming Call",
-                  });
-                }}
-              >
-                <Text style={styles.callButtonText}>Join Call</Text>
-              </Pressable>
-            ) : null}
-          </View>
-        ))
-      )}
     </ScrollView>
   );
 }
@@ -580,17 +566,6 @@ const styles = StyleSheet.create({
   errorText: {
     marginTop: 10,
     color: "#DC2626",
-  },
-  notificationCard: {
-    marginTop: 12,
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-  },
-  notificationText: {
-    color: "#0F172A",
   },
   callButton: {
     marginTop: 10,
